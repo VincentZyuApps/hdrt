@@ -1,0 +1,344 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check commit message
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.flags.outputs.should_build }}
+      should_release: ${{ steps.flags.outputs.should_release }}
+      should_publish: ${{ steps.flags.outputs.should_publish }}
+      version: ${{ steps.flags.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse commit message
+        id: flags
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+        run: |
+          VERSION="v$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          MSG="$COMMIT_MSG"
+          BUILD=false
+          RELEASE=false
+          PUBLISH=false
+
+          if echo "$MSG" | grep -qi "build publish"; then
+            BUILD=true
+            RELEASE=true
+            PUBLISH=true
+          elif echo "$MSG" | grep -qi "build release"; then
+            BUILD=true
+            RELEASE=true
+          elif echo "$MSG" | grep -qi "build action"; then
+            BUILD=true
+          fi
+
+          if echo "$MSG" | grep -qi "publish from release"; then
+            PUBLISH=true
+          fi
+
+          echo "should_build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "should_release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "should_publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "Flags: build=$BUILD release=$RELEASE publish=$PUBLISH"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: check
+    if: needs.check.outputs.should_build == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: hdrt.exe
+            asset: hdrt-windows-x86_64.exe
+
+          - name: windows-aarch64
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            binary: hdrt.exe
+            asset: hdrt-windows-aarch64.exe
+
+          - name: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            binary: hdrt
+            asset: hdrt-linux-x86_64
+            packages: musl-tools
+
+          - name: linux-aarch64
+            os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            binary: hdrt
+            asset: hdrt-linux-aarch64
+            packages: gcc-aarch64-linux-gnu
+            linker: aarch64-linux-gnu-gcc
+
+          - name: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            binary: hdrt
+            asset: hdrt-macos-x86_64
+
+          - name: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            binary: hdrt
+            asset: hdrt-macos-aarch64
+
+          - name: android-aarch64
+            os: ubuntu-latest
+            target: aarch64-linux-android
+            binary: hdrt
+            asset: hdrt-android-aarch64
+
+          - name: android-x86_64
+            os: ubuntu-latest
+            target: x86_64-linux-android
+            binary: hdrt
+            asset: hdrt-android-x86_64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Linux cross packages
+        if: matrix.packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Setup Android NDK
+        if: contains(matrix.target, 'android')
+        shell: bash
+        run: |
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
+          TOOLCHAIN="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+
+          if [[ "${{ matrix.target }}" == "aarch64-linux-android" ]]; then
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${TOOLCHAIN}/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+            echo "CC_aarch64_linux_android=${TOOLCHAIN}/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+            echo "AR_aarch64_linux_android=${TOOLCHAIN}/llvm-ar" >> "$GITHUB_ENV"
+          elif [[ "${{ matrix.target }}" == "x86_64-linux-android" ]]; then
+            echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=${TOOLCHAIN}/x86_64-linux-android24-clang" >> "$GITHUB_ENV"
+            echo "CC_x86_64_linux_android=${TOOLCHAIN}/x86_64-linux-android24-clang" >> "$GITHUB_ENV"
+            echo "AR_x86_64_linux_android=${TOOLCHAIN}/llvm-ar" >> "$GITHUB_ENV"
+          fi
+
+      - name: Format
+        if: matrix.name == 'linux-x86_64'
+        run: cargo fmt --check
+
+      - name: Clippy
+        if: matrix.name == 'linux-x86_64'
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Build release binary
+        shell: bash
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.linker || '' }}
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          ASSET_BASE="${{ matrix.asset }}"
+
+          if [[ "$ASSET_BASE" == *.* ]]; then
+            BASE_NAME="${ASSET_BASE%.*}"
+            EXTENSION="${ASSET_BASE##*.}"
+            ASSET_WITH_VERSION="${BASE_NAME}-${VERSION}.${EXTENSION}"
+          else
+            ASSET_WITH_VERSION="${ASSET_BASE}-${VERSION}"
+          fi
+
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$ASSET_WITH_VERSION"
+          echo "asset_name=$ASSET_WITH_VERSION" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.asset_name }}
+          path: ${{ env.asset_name }}
+
+  release:
+    name: Publish GitHub Release
+    needs: [check, build]
+    if: needs.check.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Generate release notes
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          cat > release-notes.md << EOF
+          # hdrt ${VERSION}
+
+          Hardware Device Rust Ratatui.
+
+          ## Downloads
+
+          | Platform | Asset |
+          | --- | --- |
+          | Windows x86_64 | hdrt-windows-x86_64-${VERSION}.exe |
+          | Windows ARM64 | hdrt-windows-aarch64-${VERSION}.exe |
+          | Linux x86_64 | hdrt-linux-x86_64-${VERSION} |
+          | Linux ARM64 | hdrt-linux-aarch64-${VERSION} |
+          | macOS x86_64 | hdrt-macos-x86_64-${VERSION} |
+          | macOS ARM64 | hdrt-macos-aarch64-${VERSION} |
+          | Android ARM64 / Termux | hdrt-android-aarch64-${VERSION} |
+          | Android x86_64 / Termux | hdrt-android-x86_64-${VERSION} |
+
+          ## Quick Start
+
+          \`\`\`bash
+          hdrt doctor
+          hdrt disk
+          hdrt mem
+          hdrt tui
+          \`\`\`
+          EOF
+
+      - name: Delete existing release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          gh release delete "$VERSION" --yes --cleanup-tag || true
+          git push origin ":refs/tags/${VERSION}" || true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          gh release create "$VERSION" \
+            --title "hdrt ${VERSION}" \
+            --notes-file release-notes.md \
+            hdrt-*
+
+  publish-scoop:
+    name: Update Scoop Bucket
+    needs: [check, release]
+    if: always() && needs.check.outputs.should_publish == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows binaries from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          REPO="${{ github.repository }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
+
+          curl -fSL -o "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
+          curl -fSL -o "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
+
+      - name: Generate Scoop manifest
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          SCOOP_VERSION="${VERSION#v}"
+          REPO="${{ github.repository }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
+
+          HASH_X64=$(sha256sum "hdrt-windows-x86_64-${VERSION}.exe" | awk '{print $1}')
+          HASH_ARM64=$(sha256sum "hdrt-windows-aarch64-${VERSION}.exe" | awk '{print $1}')
+
+          cat > hdrt.json << EOF
+          {
+              "version": "${SCOOP_VERSION}",
+              "description": "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI",
+              "homepage": "https://github.com/${REPO}",
+              "license": "MIT",
+              "architecture": {
+                  "64bit": {
+                      "url": "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe",
+                      "hash": "${HASH_X64}",
+                      "bin": [["hdrt-windows-x86_64-${VERSION}.exe", "hdrt.exe"]]
+                  },
+                  "arm64": {
+                      "url": "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe",
+                      "hash": "${HASH_ARM64}",
+                      "bin": [["hdrt-windows-aarch64-${VERSION}.exe", "hdrt.exe"]]
+                  }
+              },
+              "checkver": {
+                  "github": "${REPO}"
+              },
+              "autoupdate": {
+                  "architecture": {
+                      "64bit": {
+                          "url": "https://github.com/${REPO}/releases/download/v\$version/hdrt-windows-x86_64-v\$version.exe"
+                      },
+                      "arm64": {
+                          "url": "https://github.com/${REPO}/releases/download/v\$version/hdrt-windows-aarch64-v\$version.exe"
+                      }
+                  }
+              }
+          }
+          EOF
+
+          cat hdrt.json
+
+      - name: Push to scoop-bucket
+        env:
+          SCOOP_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+
+          git clone "https://x-access-token:${SCOOP_TOKEN}@github.com/VincentZyuApps/scoop-bucket.git" scoop-repo
+          mkdir -p scoop-repo/bucket
+          cp hdrt.json scoop-repo/bucket/hdrt.json
+
+          cd scoop-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/hdrt.json
+          git commit -m "ci: update hdrt to ${VERSION}" || echo "No changes to commit"
+          git push
