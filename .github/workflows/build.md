@@ -62,7 +62,6 @@ check
   └─ extract version from Cargo.toml
 
 build
-  ├─ rustfmt / clippy on linux-x86_64
   ├─ build 8 release binaries
   └─ upload artifacts
 

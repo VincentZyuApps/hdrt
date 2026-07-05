@@ -62,7 +62,6 @@ check
   └─ 从 Cargo.toml 提取版本
 
 build
-  ├─ 在 linux-x86_64 上运行 rustfmt / clippy
   ├─ 构建 8 个 release 二进制
   └─ 上传构建产物
 

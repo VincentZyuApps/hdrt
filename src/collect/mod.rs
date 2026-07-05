@@ -80,43 +80,23 @@ mod platform {
 }
 
 #[cfg(any(target_os = "android", target_os = "macos", windows))]
-fn sysinfo_report(source: &str) -> HardwareReport {
-    use crate::model::{CpuInfo, DiskInfo, MemoryDevice, MotherboardInfo};
+fn placeholder_report(source: &str) -> HardwareReport {
+    use crate::model::{CpuInfo, MemoryDevice, MotherboardInfo};
     use crate::warning::HdrtWarning;
-    use sysinfo::{Disks, System};
-
-    let mut system = System::new_all();
-    system.refresh_all();
-
-    let disks = Disks::new_with_refreshed_list()
-        .iter()
-        .map(|disk| DiskInfo {
-            device: disk.name().to_string_lossy().to_string(),
-            model: disk.mount_point().to_string_lossy().to_string(),
-            size: format_bytes(disk.total_space()),
-            source: source.to_string(),
-            ..DiskInfo::default()
-        })
-        .collect();
 
     let memory = vec![MemoryDevice {
         slot: "System".to_string(),
-        size: format_bytes(system.total_memory()),
         source: source.to_string(),
         warnings: vec![HdrtWarning::with_hint(
             "memory-slot-details-unavailable",
-            "Only aggregate memory information is available from sysinfo.",
+            "Memory details need a platform-specific backend.",
             "Use a platform-specific backend for per-slot details.",
         )],
         ..MemoryDevice::default()
     }];
 
-    let cpu = system.cpus().first().map(|cpu| CpuInfo {
-        model: cpu.brand().to_string(),
-        vendor: cpu.vendor_id().to_string(),
-        physical_cores: System::physical_core_count(),
-        logical_threads: Some(system.cpus().len()),
-        frequency: format!("{} MHz", cpu.frequency()),
+    let cpu = Some(CpuInfo {
+        model: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
         source: source.to_string(),
         ..CpuInfo::default()
     });
@@ -132,18 +112,19 @@ fn sysinfo_report(source: &str) -> HardwareReport {
     });
 
     HardwareReport {
-        disks,
+        disks: Vec::new(),
         memory,
         cpu,
         motherboard,
         warnings: vec![HdrtWarning::with_hint(
             "fallback-collector",
-            format!("Using fallback collector: {source}."),
+            format!("Using placeholder fallback collector: {source}."),
             "Some hardware fields may be Unknown until the native collector is implemented.",
         )],
     }
 }
 
+#[cfg(target_os = "linux")]
 fn format_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut value = bytes as f64;
