@@ -331,5 +331,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/hdrt.json
-          git commit -m "ci: update hdrt to ${VERSION}" || echo "No changes to commit"
+          git commit -m "ci: 🍨 Update hdrt to ${VERSION}" || echo "No changes to commit"
           git push
