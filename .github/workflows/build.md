@@ -1,13 +1,13 @@
-# Build & Release Workflow
+# 🚀 Build & Release Workflow
 
 > **[English](build.md)**
 > **[简体中文](build.zh-cn.md)**
 
-## Overview
+## 🧭 Overview
 
 The `hdrt` CI/CD workflow is driven by commit message keywords. Push to `main` with one of the supported keywords and GitHub Actions will build, release, or publish accordingly.
 
-## Keywords
+## 🔑 Keywords
 
 Only these four workflow keywords are enabled for now.
 
@@ -27,7 +27,7 @@ Notes:
 - `publish from release` skips building, reuses the existing GitHub Release assets for the current `Cargo.toml` version, syncs them to Gitee, then updates Scoop manifests.
 - AUR, npm, and crates.io jobs are reserved for later.
 
-## Usage Examples
+## 🧪 Usage Examples
 
 ```bash
 # Build all enabled targets.
@@ -43,7 +43,7 @@ git commit -m "release: v0.1.0 (build publish)"
 git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 ```
 
-## Build Targets
+## 🎯 Build Targets
 
 | Platform | Architecture | Target | Asset |
 |----------|:---:|--------|-------|
@@ -56,7 +56,7 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
 | Android / Termux | x86_64 | `x86_64-linux-android` | `hdrt-android-x86_64-vX.Y.Z` |
 
-## Pipeline
+## 🔁 Pipeline
 
 ```text
 check
@@ -92,7 +92,7 @@ publish-scoop-gitee
   └─ push bucket/hdrt.json to gitee.com/vincent-zyu/scoop-bucket
 ```
 
-## Release Notes Template
+## 📝 Release Notes Template
 
 Release notes are generated from:
 
@@ -109,7 +109,7 @@ The workflow replaces these placeholders:
 | `__PLAIN_VER__` | Version without the leading `v` |
 | `__BASE_URL__` | GitHub Release asset base URL |
 
-## Scoop Publish
+## 🍨 Scoop Publish
 
 The GitHub Scoop job publishes a manifest named `hdrt.json` to:
 
@@ -136,7 +136,7 @@ Required secret:
 | `GITEE_TOKEN` | Gitee token with permission to mirror code, create releases, upload release assets, and push `gitee.com/vincent-zyu/scoop-bucket` |
 | `GITEE_PRIVATE_KEY` | SSH private key used by `Yikun/hub-mirror-action` for GitHub -> Gitee repository mirroring |
 
-## Getting `SCOOP_BUCKET_TOKEN`
+## 🔐 Getting `SCOOP_BUCKET_TOKEN`
 
 Prefer a fine-grained personal access token.
 
@@ -170,7 +170,86 @@ Notes:
 - The token owner must already have push permission to `VincentZyuApps/scoop-bucket`.
 - Replace the secret before the token expires.
 
-## Version
+## 🔐 Getting `GITEE_TOKEN`
+
+Use a dedicated Gitee personal access token for GitHub Actions.
+
+1. Sign in to Gitee.
+2. Open `https://gitee.com/profile/personal_access_tokens`.
+3. Create a new personal access token with a name such as `hdrt-github-actions`.
+4. Grant repository/project write access that allows repository mirroring, tag/release creation, release asset upload, and pushing to `vincent-zyu/scoop-bucket`.
+5. Generate the token, then copy it once.
+6. Open `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`.
+7. Click `New repository secret`, name it `GITEE_TOKEN`, paste the token, then save.
+
+Required access:
+
+| Item | Value |
+|------|-------|
+| Token type | Gitee personal access token |
+| Gitee repositories | `vincent-zyu/hdrt`, `vincent-zyu/scoop-bucket` |
+| Required permission | Repository/project read and write access |
+| Secret location | `VincentZyuApps/hdrt` repository Actions secrets |
+
+Notes:
+
+- The token owner must have write permission to both Gitee repositories.
+- Keep the token separate from personal daily-use credentials.
+- Replace the secret before the token expires or is rotated.
+
+Reference links:
+
+- Gitee personal access tokens: `https://gitee.com/profile/personal_access_tokens`
+- GitHub repository secrets: `https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
+
+## 🔑 Getting `GITEE_PRIVATE_KEY`
+
+`GITEE_PRIVATE_KEY` is the SSH private key used by `Yikun/hub-mirror-action` to push mirrored commits to Gitee. Use a dedicated key pair for this workflow.
+
+1. Generate a dedicated SSH key pair on your machine:
+
+   ```bash
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror
+   ```
+
+2. Open the public key file and copy its content:
+
+   ```bash
+   cat ~/.ssh/hdrt_gitee_mirror.pub
+   ```
+
+3. Sign in to Gitee and open `https://gitee.com/profile/sshkeys`.
+4. Add the public key to the Gitee account that can push to `vincent-zyu/hdrt`.
+5. Open the private key file and copy the full content, including the `BEGIN` and `END` lines:
+
+   ```bash
+   cat ~/.ssh/hdrt_gitee_mirror
+   ```
+
+6. Open `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`.
+7. Click `New repository secret`, name it `GITEE_PRIVATE_KEY`, paste the private key, then save.
+
+Required access:
+
+| Item | Value |
+|------|-------|
+| Key type | Dedicated SSH key pair |
+| Public key location | Gitee account SSH keys |
+| Private key location | GitHub Actions secret `GITEE_PRIVATE_KEY` |
+| Required permission | The Gitee account must be able to push to `vincent-zyu/hdrt` |
+
+Notes:
+
+- Prefer a dedicated key without a passphrase for this GitHub Actions job.
+- Do not reuse your personal daily-use SSH private key.
+- Rotate the key if it is ever exposed in logs or copied to an untrusted machine.
+
+Reference links:
+
+- Gitee SSH keys: `https://gitee.com/profile/sshkeys`
+- GitHub repository secrets: `https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
+
+## 🏷️ Version
 
 The version is extracted from root `Cargo.toml`:
 

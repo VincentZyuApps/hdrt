@@ -1,13 +1,13 @@
-# 构建与发布工作流
+# 🚀 构建与发布工作流
 
 > **[English](build.md)**
 > **[简体中文](build.zh-cn.md)**
 
-## 概述
+## 🧭 概述
 
 `hdrt` 的 CI/CD 工作流由 commit message 中的关键词驱动。推送到 `main` 分支时，只要包含支持的关键词，GitHub Actions 就会执行对应的构建、发布或 Scoop 更新流程。
 
-## 关键词
+## 🔑 关键词
 
 当前只启用下面四种工作流关键词。
 
@@ -27,7 +27,7 @@
 - `publish from release` 不重新构建，会复用当前 `Cargo.toml` 版本对应的已有 GitHub Release 产物，先同步到 Gitee，再更新 Scoop manifest。
 - AUR、npm 和 crates.io 任务暂时预留，后续再接。
 
-## 用法示例
+## 🧪 用法示例
 
 ```bash
 # 构建所有已启用目标。
@@ -43,7 +43,7 @@ git commit -m "release: v0.1.0 (build publish)"
 git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 ```
 
-## 构建目标
+## 🎯 构建目标
 
 | 平台 | 架构 | Target | 产物 |
 |------|:---:|--------|------|
@@ -56,7 +56,7 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
 | Android / Termux | x86_64 | `x86_64-linux-android` | `hdrt-android-x86_64-vX.Y.Z` |
 
-## 流水线
+## 🔁 流水线
 
 ```text
 check
@@ -92,7 +92,7 @@ publish-scoop-gitee
   └─ 推送 bucket/hdrt.json 到 gitee.com/vincent-zyu/scoop-bucket
 ```
 
-## Release Notes 模板
+## 📝 Release Notes 模板
 
 Release notes 从下面的模板生成：
 
@@ -109,7 +109,7 @@ Release notes 从下面的模板生成：
 | `__PLAIN_VER__` | 去掉开头 `v` 的版本号 |
 | `__BASE_URL__` | GitHub Release 产物基础 URL |
 
-## Scoop 发布
+## 🍨 Scoop 发布
 
 GitHub Scoop job 会发布名为 `hdrt.json` 的 manifest 到：
 
@@ -136,7 +136,7 @@ manifest 支持：
 | `GITEE_TOKEN` | 可同步代码、创建 Release、上传 Release 产物并推送 `gitee.com/vincent-zyu/scoop-bucket` 的 Gitee token |
 | `GITEE_PRIVATE_KEY` | `Yikun/hub-mirror-action` 用于 GitHub -> Gitee 仓库镜像的 SSH 私钥 |
 
-## 获取 `SCOOP_BUCKET_TOKEN`
+## 🔐 获取 `SCOOP_BUCKET_TOKEN`
 
 推荐使用 fine-grained personal access token。
 
@@ -170,7 +170,86 @@ Classic PAT 兜底：
 - Token 所属账号必须已经拥有 `VincentZyuApps/scoop-bucket` 的 push 权限。
 - 在 token 过期前替换 secret。
 
-## 版本号
+## 🔐 获取 `GITEE_TOKEN`
+
+建议为 GitHub Actions 单独创建一个 Gitee 私人令牌。
+
+1. 登录 Gitee。
+2. 打开 `https://gitee.com/profile/personal_access_tokens`。
+3. 创建新的私人令牌，名称可以填 `hdrt-github-actions`。
+4. 授予仓库 / 项目写入权限，确保它可以执行仓库镜像、创建 tag / release、上传 Release 附件，以及推送 `vincent-zyu/scoop-bucket`。
+5. 生成令牌，然后立即复制 token。
+6. 打开 `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`。
+7. 点击 `New repository secret`，名称填写 `GITEE_TOKEN`，粘贴 token 后保存。
+
+所需权限：
+
+| 项目 | 值 |
+|------|----|
+| Token 类型 | Gitee 私人令牌 |
+| Gitee 仓库 | `vincent-zyu/hdrt`、`vincent-zyu/scoop-bucket` |
+| 所需权限 | 仓库 / 项目读写权限 |
+| Secret 位置 | `VincentZyuApps/hdrt` 仓库 Actions secrets |
+
+注意事项：
+
+- Token 所属 Gitee 账号必须对两个 Gitee 仓库都有写入权限。
+- 这个 token 建议只给 CI 使用，不要和日常个人凭据混用。
+- token 过期或轮换后，需要同步替换 GitHub Actions secret。
+
+参考链接：
+
+- Gitee 私人令牌：`https://gitee.com/profile/personal_access_tokens`
+- GitHub 仓库 Secrets：`https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
+
+## 🔑 获取 `GITEE_PRIVATE_KEY`
+
+`GITEE_PRIVATE_KEY` 是 `Yikun/hub-mirror-action` 用来向 Gitee 推送镜像提交的 SSH 私钥。建议为这个 workflow 单独生成一对 SSH key。
+
+1. 在本机生成专用 SSH key：
+
+   ```bash
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror
+   ```
+
+2. 打开公钥文件并复制内容：
+
+   ```bash
+   cat ~/.ssh/hdrt_gitee_mirror.pub
+   ```
+
+3. 登录 Gitee，打开 `https://gitee.com/profile/sshkeys`。
+4. 将公钥添加到有权限推送 `vincent-zyu/hdrt` 的 Gitee 账号。
+5. 打开私钥文件并复制完整内容，包括 `BEGIN` 和 `END` 行：
+
+   ```bash
+   cat ~/.ssh/hdrt_gitee_mirror
+   ```
+
+6. 打开 `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`。
+7. 点击 `New repository secret`，名称填写 `GITEE_PRIVATE_KEY`，粘贴私钥后保存。
+
+所需权限：
+
+| 项目 | 值 |
+|------|----|
+| Key 类型 | 专用 SSH key pair |
+| 公钥位置 | Gitee 账号 SSH 公钥 |
+| 私钥位置 | GitHub Actions secret `GITEE_PRIVATE_KEY` |
+| 所需权限 | Gitee 账号必须可以推送 `vincent-zyu/hdrt` |
+
+注意事项：
+
+- 这个 GitHub Actions job 建议使用不带 passphrase 的专用 key。
+- 不要复用日常个人 SSH 私钥。
+- 如果私钥出现在日志或被复制到不可信机器上，应立即轮换。
+
+参考链接：
+
+- Gitee SSH 公钥：`https://gitee.com/profile/sshkeys`
+- GitHub 仓库 Secrets：`https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
+
+## 🏷️ 版本号
 
 版本号从根目录 `Cargo.toml` 提取：
 
