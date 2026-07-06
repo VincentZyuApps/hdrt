@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::hardware::{HdrtWarning, MemoryDevice};
+use crate::hardware::{is_unknown, unknown, HdrtWarning, MemoryDevice};
 
 use super::command::{format_bytes, non_empty_or_unknown, run_command};
 
@@ -30,7 +30,7 @@ fn memory_from_proc() -> MemoryDevice {
                 Some(format_bytes(kb * 1024))
             })
         })
-        .unwrap_or_else(|| "Unknown".to_string());
+        .unwrap_or_else(unknown);
 
     MemoryDevice {
         slot: "System".to_string(),
@@ -87,7 +87,7 @@ fn parse_dmidecode_memory(output: &str) -> Vec<MemoryDevice> {
 
 fn flush_memory(devices: &mut Vec<MemoryDevice>, current: Option<MemoryDevice>) {
     if let Some(device) = current {
-        if !device.size.contains("No Module") && device.size != "Unknown" {
+        if !device.size.contains("No Module") && !is_unknown(&device.size) {
             devices.push(device);
         }
     }

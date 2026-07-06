@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::collector::capability;
-use crate::hardware::{HdrtWarning, MotherboardInfo};
+use crate::hardware::{unknown, HdrtWarning, MotherboardInfo};
 
 use super::command::non_empty_or_unknown;
 
@@ -9,7 +9,7 @@ pub(super) fn collect() -> Option<MotherboardInfo> {
     let read_dmi = |name: &str| -> String {
         fs::read_to_string(format!("/sys/class/dmi/id/{name}"))
             .map(|value| non_empty_or_unknown(value.trim()))
-            .unwrap_or_else(|_| "Unknown".to_string())
+            .unwrap_or_else(|_| unknown())
     };
 
     Some(MotherboardInfo {

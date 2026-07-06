@@ -35,6 +35,14 @@ scoop install hdrt
 hdrt doctor
 ```
 
+Gitee 镜像：
+
+```powershell
+scoop bucket add vincentzyu https://gitee.com/vincent-zyu/scoop-bucket
+scoop install hdrt
+hdrt doctor
+```
+
 Windows 上默认使用 Rust native WMI/CIM 后端；如果 WMI 不可用，会退回轻量 `sysinfo + registry` 后端。只有需要对照或 debug 时才显式启用 PowerShell/CIM 后端。`--ps` 和 `--ps1` 是 `--powershell` 的别名：
 
 ```powershell
@@ -88,6 +96,8 @@ hdrt all --lang zh-cn
 
 - Linux SMART 详情通常需要 `smartctl`，很多场景还需要 `sudo`。
 - Linux 内存插槽序列号通常需要 `dmidecode`，很多场景还需要 `sudo`。
+- Linux 磁盘采集默认使用 `lsblk`，如果不可用会退回 `df` 逻辑卷信息。
+- Android / Termux 使用 `/proc`、`df` 和 `getprop`；Android 可能隐藏底层磁盘、主板、序列号、固件和健康状态字段。
 - Windows 主板、BIOS、磁盘序列号等字段可能需要管理员终端。
 
 推荐检查：
@@ -101,4 +111,4 @@ sudo hdrt memory
 
 ## 🚧 状态
 
-项目处于早期开发阶段。第一版目标是 Linux 优先的 CLI MVP，然后逐步补 Windows、macOS、Android/Termux 和更完整的 Ratatui UI。
+项目处于早期开发阶段。当前采集器覆盖 Linux、Android/Termux、Windows，并保留 macOS placeholder，后续继续完善 Ratatui UI。

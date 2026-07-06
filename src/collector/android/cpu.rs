@@ -13,15 +13,15 @@ pub(super) fn collect() -> Option<CpuInfo> {
     let mut logical_threads = 0usize;
 
     for line in text.lines() {
-        if let Some(value) = field_value(line, "model name") {
-            if is_unknown(&cpu.model) {
-                cpu.model = non_empty_or_unknown(value);
-            }
-        } else if let Some(value) = field_value(line, "Hardware") {
+        if let Some(value) = field_value(line, "Hardware") {
             if is_unknown(&cpu.model) {
                 cpu.model = non_empty_or_unknown(value);
             }
         } else if let Some(value) = field_value(line, "Processor") {
+            if is_unknown(&cpu.model) {
+                cpu.model = non_empty_or_unknown(value);
+            }
+        } else if let Some(value) = field_value(line, "model name") {
             if is_unknown(&cpu.model) {
                 cpu.model = non_empty_or_unknown(value);
             }

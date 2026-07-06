@@ -17,44 +17,6 @@ pub(super) fn run_command(program: &str, args: &[&str]) -> Result<String, String
     }
 }
 
-pub(super) fn parse_key_values(line: &str) -> HashMap<String, String> {
-    let mut values = HashMap::new();
-    let chars: Vec<char> = line.chars().collect();
-    let mut i = 0;
-
-    while i < chars.len() {
-        while i < chars.len() && chars[i].is_whitespace() {
-            i += 1;
-        }
-
-        let key_start = i;
-        while i < chars.len() && chars[i] != '=' {
-            i += 1;
-        }
-        if i >= chars.len() {
-            break;
-        }
-        let key: String = chars[key_start..i].iter().collect();
-        i += 1;
-
-        if i >= chars.len() || chars[i] != '"' {
-            break;
-        }
-        i += 1;
-        let value_start = i;
-        while i < chars.len() && chars[i] != '"' {
-            i += 1;
-        }
-        let value: String = chars[value_start..i].iter().collect();
-        if i < chars.len() {
-            i += 1;
-        }
-        values.insert(key, value);
-    }
-
-    values
-}
-
 pub(super) fn field_value<'a>(line: &'a str, key: &str) -> Option<&'a str> {
     let (line_key, value) = line.split_once(':')?;
     if line_key.trim() == key {
@@ -64,10 +26,16 @@ pub(super) fn field_value<'a>(line: &'a str, key: &str) -> Option<&'a str> {
     }
 }
 
-pub(super) fn value_or_unknown(value: Option<&String>) -> String {
-    value
-        .map(|value| non_empty_or_unknown(value.trim()))
-        .unwrap_or_else(unknown)
+pub(super) fn parse_getprop(output: &str) -> HashMap<String, String> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let (key, value) = line.split_once("]: [")?;
+            let key = key.strip_prefix('[')?;
+            let value = value.strip_suffix(']')?;
+            Some((key.to_string(), value.to_string()))
+        })
+        .collect()
 }
 
 pub(super) fn non_empty_or_unknown(value: &str) -> String {

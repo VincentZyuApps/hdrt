@@ -11,18 +11,20 @@ The `hdrt` CI/CD workflow is driven by commit message keywords. Push to `main` w
 
 Only these four workflow keywords are enabled for now.
 
-| Keyword in commit message | Build (8 platforms) | GitHub Release | Scoop | AUR / npm | crates.io |
-|---------------------------|:---:|:---:|:---:|:---:|:---:|
-| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `build release` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `build publish` | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `publish from release` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Keyword in commit message | Build (8 platforms) | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
+|---------------------------|:---:|:---:|:---:|:---:|:---:|:---:|
+| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `build release` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `build publish` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `publish from release` | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
 
 Notes:
 
 - Pull requests always build, but never publish.
-- `build publish` builds binaries, creates a GitHub Release, then updates the Scoop bucket.
-- `publish from release` skips building and reuses the existing GitHub Release assets for the current `Cargo.toml` version.
+- Each push mirrors the code repository to Gitee.
+- `build release` builds binaries, creates a GitHub Release, then syncs the Release files to Gitee.
+- `build publish` builds binaries, creates GitHub/Gitee Releases, then updates both GitHub and Gitee Scoop buckets.
+- `publish from release` skips building, reuses the existing GitHub Release assets for the current `Cargo.toml` version, syncs them to Gitee, then updates Scoop manifests.
 - AUR, npm, and crates.io jobs are reserved for later.
 
 ## Usage Examples
@@ -67,22 +69,58 @@ build
 
 release
   ├─ download artifacts
-  ├─ generate release notes
+  ├─ generate release notes from .github/release_template.md
   └─ create GitHub Release
 
-publish-scoop
+sync-gitee-code
+  └─ mirror repository commits to gitee.com/vincent-zyu/hdrt
+
+sync-gitee-release
+  ├─ read the GitHub Release body and assets
+  ├─ create or find the Gitee Release for the same tag
+  └─ upload missing Release assets to Gitee
+
+publish-scoop-github
   ├─ download Windows binaries from GitHub Release
   ├─ compute SHA256 hashes
   ├─ generate hdrt.json
   └─ push bucket/hdrt.json to VincentZyuApps/scoop-bucket
+
+publish-scoop-gitee
+  ├─ download Windows binaries from GitHub Release for hashing
+  ├─ generate hdrt.json with Gitee Release URLs
+  └─ push bucket/hdrt.json to gitee.com/vincent-zyu/scoop-bucket
 ```
+
+## Release Notes Template
+
+Release notes are generated from:
+
+```text
+.github/release_template.md
+```
+
+The workflow replaces these placeholders:
+
+| Placeholder | Value |
+|-------------|-------|
+| `__REPO__` | GitHub repository, such as `VincentZyuApps/hdrt` |
+| `__VERSION__` | Release tag, such as `v0.1.4-alpha.7` |
+| `__PLAIN_VER__` | Version without the leading `v` |
+| `__BASE_URL__` | GitHub Release asset base URL |
 
 ## Scoop Publish
 
-The Scoop job publishes a manifest named `hdrt.json` to:
+The GitHub Scoop job publishes a manifest named `hdrt.json` to:
 
 ```text
 VincentZyuApps/scoop-bucket
+```
+
+The Gitee Scoop job publishes a mirror manifest named `hdrt.json` to:
+
+```text
+gitee.com/vincent-zyu/scoop-bucket
 ```
 
 The manifest supports:
@@ -95,6 +133,8 @@ Required secret:
 | Secret | Purpose |
 |--------|---------|
 | `SCOOP_BUCKET_TOKEN` | GitHub PAT with permission to push to `VincentZyuApps/scoop-bucket` |
+| `GITEE_TOKEN` | Gitee token with permission to mirror code, create releases, upload release assets, and push `gitee.com/vincent-zyu/scoop-bucket` |
+| `GITEE_PRIVATE_KEY` | SSH private key used by `Yikun/hub-mirror-action` for GitHub -> Gitee repository mirroring |
 
 ## Getting `SCOOP_BUCKET_TOKEN`
 

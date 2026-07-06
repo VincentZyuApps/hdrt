@@ -11,7 +11,10 @@ pub fn capability_report() -> CapabilityReport {
         );
     }
     if cfg!(target_os = "android") {
-        notes.push("Android/Termux usually exposes fewer low-level hardware fields.".to_string());
+        notes.push(
+            "Android/Termux uses /proc, df, and getprop; low-level board, serial, disk health, and firmware fields may be hidden."
+                .to_string(),
+        );
     }
 
     CapabilityReport {
@@ -30,8 +33,9 @@ fn capability_tools() -> Vec<ToolStatus> {
                 name: "native-wmi".to_string(),
                 available: true,
                 path: Some("WMI COM".to_string()),
-                purpose: "default Windows backend for disk, memory, CPU, baseboard, and BIOS inventory"
-                    .to_string(),
+                purpose:
+                    "default Windows backend for disk, memory, CPU, baseboard, and BIOS inventory"
+                        .to_string(),
             },
             ToolStatus {
                 name: "sysinfo".to_string(),
@@ -44,8 +48,9 @@ fn capability_tools() -> Vec<ToolStatus> {
                 name: "windows-registry".to_string(),
                 available: true,
                 path: Some("HKLM".to_string()),
-                purpose: "fallback backend for CPU, BIOS, baseboard, and physical disk PnP inventory"
-                    .to_string(),
+                purpose:
+                    "fallback backend for CPU, BIOS, baseboard, and physical disk PnP inventory"
+                        .to_string(),
             },
             command_tool(
                 "powershell",
@@ -54,6 +59,23 @@ fn capability_tools() -> Vec<ToolStatus> {
             command_tool(
                 "pwsh",
                 "optional PowerShell 7 executable; hdrt currently prefers Windows PowerShell",
+            ),
+        ];
+    }
+
+    if cfg!(target_os = "android") {
+        return vec![
+            ToolStatus {
+                name: "procfs".to_string(),
+                available: true,
+                path: Some("/proc/cpuinfo + /proc/meminfo".to_string()),
+                purpose: "default Android backend for CPU and memory totals".to_string(),
+            },
+            command_tool("df", "Android/Termux logical storage inventory"),
+            command_tool("getprop", "Android device, board, and OS properties"),
+            command_tool(
+                "lsblk",
+                "optional Termux block device inventory when available",
             ),
         ];
     }

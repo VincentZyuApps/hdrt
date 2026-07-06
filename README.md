@@ -35,6 +35,14 @@ scoop install hdrt
 hdrt doctor
 ```
 
+Gitee mirror:
+
+```powershell
+scoop bucket add vincentzyu https://gitee.com/vincent-zyu/scoop-bucket
+scoop install hdrt
+hdrt doctor
+```
+
 On Windows, `hdrt` uses native Rust WMI/CIM by default, then falls back to the lightweight `sysinfo + registry` backend if WMI is unavailable. Use PowerShell/CIM explicitly only when you want a comparison or debug fallback. `--ps` and `--ps1` are aliases for `--powershell`:
 
 ```powershell
@@ -88,6 +96,8 @@ Some fields need elevated privileges or external tools:
 
 - Linux SMART details usually need `smartctl`, often with `sudo`.
 - Linux memory slot serial numbers usually need `dmidecode`, often with `sudo`.
+- Linux disk inventory uses `lsblk` by default and falls back to `df` logical volumes when `lsblk` is unavailable.
+- Android / Termux uses `/proc`, `df`, and `getprop`; Android may hide low-level disk, board, serial, firmware, and health fields.
 - Windows board, BIOS, and disk serial fields may need an Administrator terminal.
 
 Recommended checks:
@@ -101,4 +111,4 @@ sudo hdrt memory
 
 ## 🚧 Status
 
-This project is in early development. The first usable target is a Linux-first CLI MVP, followed by Windows, macOS, Android/Termux, and a richer Ratatui UI.
+This project is in early development. Current collectors cover Linux, Android/Termux, Windows, and placeholder macOS support, followed by a richer Ratatui UI.

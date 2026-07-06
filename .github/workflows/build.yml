@@ -63,6 +63,22 @@ jobs:
           echo "should_publish=$PUBLISH" >> "$GITHUB_OUTPUT"
           echo "Flags: build=$BUILD release=$RELEASE publish=$PUBLISH"
 
+  sync-gitee-code:
+    name: 【Gitee码云】Sync Code Commit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Mirror to Gitee
+        uses: Yikun/hub-mirror-action@v1.5
+        with:
+          src: github/VincentZyuApps
+          dst: gitee/vincent-zyu
+          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          static_list: "hdrt"
+          force_update: true
+          debug: true
+
   build:
     name: Build ${{ matrix.name }}
     needs: check
@@ -208,33 +224,16 @@ jobs:
       - name: Generate release notes
         run: |
           VERSION="${{ needs.check.outputs.version }}"
-          cat > release-notes.md << EOF
-          # hdrt ${VERSION}
+          PLAIN_VERSION="${VERSION#v}"
+          REPO="${{ github.repository }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 
-          Hardware Device Rust Ratatui.
-
-          ## Downloads
-
-          | Platform | Asset |
-          | --- | --- |
-          | Windows x86_64 | hdrt-windows-x86_64-${VERSION}.exe |
-          | Windows ARM64 | hdrt-windows-aarch64-${VERSION}.exe |
-          | Linux x86_64 | hdrt-linux-x86_64-${VERSION} |
-          | Linux ARM64 | hdrt-linux-aarch64-${VERSION} |
-          | macOS x86_64 | hdrt-macos-x86_64-${VERSION} |
-          | macOS ARM64 | hdrt-macos-aarch64-${VERSION} |
-          | Android ARM64 / Termux | hdrt-android-aarch64-${VERSION} |
-          | Android x86_64 / Termux | hdrt-android-x86_64-${VERSION} |
-
-          ## Quick Start
-
-          \`\`\`bash
-          hdrt doctor
-          hdrt disk
-          hdrt mem
-          hdrt tui
-          \`\`\`
-          EOF
+          sed \
+            -e "s|__REPO__|${REPO}|g" \
+            -e "s|__VERSION__|${VERSION}|g" \
+            -e "s|__PLAIN_VER__|${PLAIN_VERSION}|g" \
+            -e "s|__BASE_URL__|${BASE_URL}|g" \
+            .github/release_template.md > release-notes.md
 
       - name: Delete existing release and tag
         env:
@@ -254,8 +253,126 @@ jobs:
             --notes-file release-notes.md \
             hdrt-*
 
-  publish-scoop:
-    name: Update Scoop Bucket
+  sync-gitee-release:
+    name: 【Gitee码云】Sync Release File
+    needs: [check, release, sync-gitee-code]
+    if: always() && (needs.check.outputs.should_release == 'true' || needs.check.outputs.should_publish == 'true') && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs['sync-gitee-code'].result == 'success' || needs['sync-gitee-code'].result == 'skipped')
+    runs-on: ubuntu-latest
+    env:
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+      GITEE_OWNER: vincent-zyu
+      GITEE_REPO: hdrt
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get GitHub release info
+        id: release_info
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.check.outputs.version }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          RELEASE_INFO=$(gh release view "$TAG" --json name,body,assets)
+          echo "release_name=$(echo "$RELEASE_INFO" | jq -r '.name')" >> "$GITHUB_OUTPUT"
+          echo "$RELEASE_INFO" | jq -r '.body' > release_body.md
+          echo "Release: $TAG"
+
+      - name: Download GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release_info.outputs.tag }}"
+          mkdir -p assets
+          gh release download "$TAG" --pattern "*" --dir assets
+          ls -lh assets
+
+      - name: Create or find Gitee release
+        id: gitee_release
+        run: |
+          TAG="${{ steps.release_info.outputs.tag }}"
+          NAME="${{ steps.release_info.outputs.release_name }}"
+          BODY_JSON=$(jq -R -s '.' < release_body.md)
+          CURL="curl -s -k --retry 3 --retry-delay 5 --retry-all-errors"
+
+          if $CURL --fail "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/tags/${TAG}?access_token=${GITEE_TOKEN}" > /dev/null 2>&1; then
+            echo "Tag $TAG already exists on Gitee"
+          else
+            $CURL -X POST --header 'Content-Type: application/json;charset=UTF-8' \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/tags" \
+              -d "{\"access_token\":\"${GITEE_TOKEN}\",\"tag_name\":\"${TAG}\",\"refs\":\"main\",\"tag_message\":\"Release ${TAG}\"}"
+          fi
+
+          EXISTING=$($CURL "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/tags/${TAG}?access_token=${GITEE_TOKEN}")
+          RELEASE_ID=$(echo "$EXISTING" | jq -r '.id')
+
+          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+            : > existing_gitee_assets.txt
+            PAYLOAD=$(jq -n \
+              --arg token "$GITEE_TOKEN" \
+              --arg tag "$TAG" \
+              --arg name "$NAME" \
+              --argjson body "$BODY_JSON" \
+              '{
+                access_token: $token,
+                tag_name: $tag,
+                name: $name,
+                body: $body,
+                target_commitish: "main",
+                prerelease: false
+              }')
+
+            RESPONSE=$($CURL -X POST --header 'Content-Type: application/json;charset=UTF-8' \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases" \
+              -d "$PAYLOAD")
+            RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
+          else
+            echo "$EXISTING" | jq -r '.assets[]? | (.name // .filename // .path // empty)' > existing_gitee_assets.txt
+          fi
+
+          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+            echo "Failed to create or find Gitee release"
+            exit 1
+          fi
+
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Upload assets to Gitee
+        run: |
+          RELEASE_ID="${{ steps.gitee_release.outputs.release_id }}"
+          SUCCESS=0
+          FAIL=0
+
+          for FILE in assets/*; do
+            [ -f "$FILE" ] || continue
+            FILENAME="$(basename "$FILE")"
+            echo "Uploading $FILENAME to Gitee release $RELEASE_ID"
+
+            if grep -Fxq "$FILENAME" existing_gitee_assets.txt 2>/dev/null; then
+              echo "$FILENAME already exists on Gitee; skipping upload"
+              SUCCESS=$((SUCCESS + 1))
+              continue
+            fi
+
+            if curl -s -k --retry 3 --retry-delay 10 --retry-all-errors \
+              --max-time 1200 --connect-timeout 30 \
+              -X POST --header "Content-Type: multipart/form-data" \
+              -F "access_token=${GITEE_TOKEN}" \
+              -F "file=@${FILE}" \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${RELEASE_ID}/attach_files" \
+              | jq -e '.browser_download_url' > /dev/null; then
+              SUCCESS=$((SUCCESS + 1))
+            else
+              FAIL=$((FAIL + 1))
+            fi
+          done
+
+          echo "Gitee upload summary: $SUCCESS succeeded, $FAIL failed"
+          [ "$FAIL" -eq 0 ]
+
+  publish-scoop-github:
+    name: Update GitHub Scoop Bucket
     needs: [check, release]
     if: always() && needs.check.outputs.should_publish == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
@@ -324,6 +441,86 @@ jobs:
           VERSION="${{ needs.check.outputs.version }}"
 
           git clone "https://x-access-token:${SCOOP_TOKEN}@github.com/VincentZyuApps/scoop-bucket.git" scoop-repo
+          mkdir -p scoop-repo/bucket
+          cp hdrt.json scoop-repo/bucket/hdrt.json
+
+          cd scoop-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/hdrt.json
+          git commit -m "ci: 🍨 Update hdrt to ${VERSION}" || echo "No changes to commit"
+          git push
+
+  publish-scoop-gitee:
+    name: 【Gitee码云】Update Scoop Bucket
+    needs: [check, release, sync-gitee-release]
+    if: always() && needs.check.outputs.should_publish == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped') && needs['sync-gitee-release'].result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows binaries from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          REPO="${{ github.repository }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
+
+          curl -fSL -o "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
+          curl -fSL -o "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
+
+      - name: Generate Gitee Scoop manifest
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          SCOOP_VERSION="${VERSION#v}"
+          GITEE_BASE_URL="https://gitee.com/vincent-zyu/hdrt/releases/download/${VERSION}"
+
+          HASH_X64=$(sha256sum "hdrt-windows-x86_64-${VERSION}.exe" | awk '{print $1}')
+          HASH_ARM64=$(sha256sum "hdrt-windows-aarch64-${VERSION}.exe" | awk '{print $1}')
+
+          cat > hdrt.json << EOF
+          {
+              "version": "${SCOOP_VERSION}",
+              "description": "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI",
+              "homepage": "https://gitee.com/vincent-zyu/hdrt",
+              "license": "MIT",
+              "architecture": {
+                  "64bit": {
+                      "url": "${GITEE_BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe",
+                      "hash": "${HASH_X64}",
+                      "bin": [["hdrt-windows-x86_64-${VERSION}.exe", "hdrt"]]
+                  },
+                  "arm64": {
+                      "url": "${GITEE_BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe",
+                      "hash": "${HASH_ARM64}",
+                      "bin": [["hdrt-windows-aarch64-${VERSION}.exe", "hdrt"]]
+                  }
+              },
+              "checkver": {
+                  "url": "https://gitee.com/vincent-zyu/hdrt/releases",
+                  "regex": "/releases/tag/v([\\\\w.\\\\-]+)"
+              },
+              "autoupdate": {
+                  "architecture": {
+                      "64bit": {
+                          "url": "https://gitee.com/vincent-zyu/hdrt/releases/download/v\$version/hdrt-windows-x86_64-v\$version.exe"
+                      },
+                      "arm64": {
+                          "url": "https://gitee.com/vincent-zyu/hdrt/releases/download/v\$version/hdrt-windows-aarch64-v\$version.exe"
+                      }
+                  }
+              }
+          }
+          EOF
+
+          cat hdrt.json
+
+      - name: Push to Gitee scoop-bucket
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+
+          git clone "https://vincent-zyu:${GITEE_TOKEN}@gitee.com/vincent-zyu/scoop-bucket.git" scoop-repo
           mkdir -p scoop-repo/bucket
           cp hdrt.json scoop-repo/bucket/hdrt.json
 

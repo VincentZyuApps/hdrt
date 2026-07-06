@@ -11,18 +11,20 @@
 
 当前只启用下面四种工作流关键词。
 
-| Commit 信息中的关键词 | 构建（8 平台） | GitHub Release | Scoop | AUR / npm | crates.io |
-|----------------------|:---:|:---:|:---:|:---:|:---:|
-| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `build release` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `build publish` | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `publish from release` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Commit 信息中的关键词 | 构建（8 平台） | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
+|----------------------|:---:|:---:|:---:|:---:|:---:|:---:|
+| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `build release` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `build publish` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `publish from release` | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
 
 说明：
 
 - Pull Request 始终会构建，但不会发布。
-- `build publish` 会构建二进制、创建 GitHub Release，然后更新 Scoop bucket。
-- `publish from release` 不重新构建，会复用当前 `Cargo.toml` 版本对应的已有 GitHub Release 产物。
+- 每次 push 都会同步代码仓库到 Gitee。
+- `build release` 会构建二进制、创建 GitHub Release，然后同步 Release 文件到 Gitee。
+- `build publish` 会构建二进制、创建 GitHub/Gitee Release，然后同时更新 GitHub 和 Gitee Scoop bucket。
+- `publish from release` 不重新构建，会复用当前 `Cargo.toml` 版本对应的已有 GitHub Release 产物，先同步到 Gitee，再更新 Scoop manifest。
 - AUR、npm 和 crates.io 任务暂时预留，后续再接。
 
 ## 用法示例
@@ -67,22 +69,58 @@ build
 
 release
   ├─ 下载构建产物
-  ├─ 生成 release notes
+  ├─ 从 .github/release_template.md 生成 release notes
   └─ 创建 GitHub Release
 
-publish-scoop
+sync-gitee-code
+  └─ 镜像代码提交到 gitee.com/vincent-zyu/hdrt
+
+sync-gitee-release
+  ├─ 读取 GitHub Release 正文和产物
+  ├─ 创建或查找同 tag 的 Gitee Release
+  └─ 补齐缺失的 Release 产物到 Gitee
+
+publish-scoop-github
   ├─ 从 GitHub Release 下载 Windows 二进制
   ├─ 计算 SHA256
   ├─ 生成 hdrt.json
   └─ 推送 bucket/hdrt.json 到 VincentZyuApps/scoop-bucket
+
+publish-scoop-gitee
+  ├─ 从 GitHub Release 下载 Windows 二进制用于计算 hash
+  ├─ 生成指向 Gitee Release URL 的 hdrt.json
+  └─ 推送 bucket/hdrt.json 到 gitee.com/vincent-zyu/scoop-bucket
 ```
+
+## Release Notes 模板
+
+Release notes 从下面的模板生成：
+
+```text
+.github/release_template.md
+```
+
+工作流会替换这些占位符：
+
+| 占位符 | 值 |
+|--------|----|
+| `__REPO__` | GitHub 仓库，例如 `VincentZyuApps/hdrt` |
+| `__VERSION__` | Release tag，例如 `v0.1.4-alpha.7` |
+| `__PLAIN_VER__` | 去掉开头 `v` 的版本号 |
+| `__BASE_URL__` | GitHub Release 产物基础 URL |
 
 ## Scoop 发布
 
-Scoop job 会发布名为 `hdrt.json` 的 manifest 到：
+GitHub Scoop job 会发布名为 `hdrt.json` 的 manifest 到：
 
 ```text
 VincentZyuApps/scoop-bucket
+```
+
+Gitee Scoop job 会发布镜像 manifest 到：
+
+```text
+gitee.com/vincent-zyu/scoop-bucket
 ```
 
 manifest 支持：
@@ -95,6 +133,8 @@ manifest 支持：
 | Secret | 用途 |
 |--------|------|
 | `SCOOP_BUCKET_TOKEN` | 可推送到 `VincentZyuApps/scoop-bucket` 的 GitHub PAT |
+| `GITEE_TOKEN` | 可同步代码、创建 Release、上传 Release 产物并推送 `gitee.com/vincent-zyu/scoop-bucket` 的 Gitee token |
+| `GITEE_PRIVATE_KEY` | `Yikun/hub-mirror-action` 用于 GitHub -> Gitee 仓库镜像的 SSH 私钥 |
 
 ## 获取 `SCOOP_BUCKET_TOKEN`
 
