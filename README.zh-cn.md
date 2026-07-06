@@ -1,10 +1,10 @@
-![hdrt](https://socialify.git.ci/VincentZyu233/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
+![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
 # hdrt
 
 [English](README.md) | 简体中文
 
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyu233/hdrt)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/hdrt)
 [![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/hdrt)
 
 > **[构建文档](.github/workflows/build.zh-cn.md)**
@@ -23,6 +23,26 @@
 - `hard ratatui`: 面向硬件信息查看的 Ratatui 终端工具
 
 快速记忆：可以把 `hdrt` 记成 `"hard rata"`，这样更容易想起这个简写指令。
+
+## 安装
+
+### Windows (Scoop)
+
+> [Scoop Bucket](https://github.com/VincentZyuApps/scoop-bucket/blob/main/bucket/hdrt.json)
+
+```powershell
+scoop bucket add vincentzyu https://github.com/VincentZyuApps/scoop-bucket
+scoop install hdrt
+hdrt doctor
+```
+
+Windows 上默认使用轻量 Rust `sysinfo + registry` 后端；如果需要更详细的 CIM 硬件字段，可以显式启用 PowerShell 后端。`--ps` 和 `--ps1` 是 `--powershell` 的别名：
+
+```powershell
+hdrt --powershell all
+hdrt --ps disk
+hdrt --ps1 mem
+```
 
 ## 命令
 

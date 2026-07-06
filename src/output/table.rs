@@ -1,9 +1,8 @@
 use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
-use crate::cli::OutputFormat;
-use crate::model::{CapabilityReport, HardwareReport, Section};
-use crate::warning::HdrtWarning;
+use crate::app::options::OutputFormat;
+use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 
 #[derive(Tabled)]
 struct DiskRow {

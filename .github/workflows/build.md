@@ -96,6 +96,40 @@ Required secret:
 |--------|---------|
 | `SCOOP_BUCKET_TOKEN` | GitHub PAT with permission to push to `VincentZyuApps/scoop-bucket` |
 
+## Getting `SCOOP_BUCKET_TOKEN`
+
+Prefer a fine-grained personal access token.
+
+1. Open `https://github.com/settings/personal-access-tokens/new`.
+2. Set `Token name` to something like `hdrt-scoop-bucket`.
+3. Select an expiration date, such as 90 or 180 days.
+4. Set `Resource owner` to the owner that contains `scoop-bucket`.
+5. Set `Repository access` to `Only select repositories`.
+6. Select `VincentZyuApps/scoop-bucket`.
+7. Under `Repository permissions`, set `Contents` to `Read and write`.
+8. Click `Generate token`, then copy the token once.
+9. Open `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`.
+10. Click `New repository secret`, name it `SCOOP_BUCKET_TOKEN`, paste the token, then save.
+
+Required access:
+
+| Item | Value |
+|------|-------|
+| Token type | Fine-grained PAT preferred |
+| Repository | `VincentZyuApps/scoop-bucket` |
+| Repository permission | `Contents: Read and write` |
+| Secret location | `VincentZyuApps/hdrt` repository Actions secrets |
+
+Classic PAT fallback:
+
+- Use only when fine-grained PAT cannot access the bucket.
+- Grant the `repo` scope, then store it as the same `SCOOP_BUCKET_TOKEN` secret.
+
+Notes:
+
+- The token owner must already have push permission to `VincentZyuApps/scoop-bucket`.
+- Replace the secret before the token expires.
+
 ## Version
 
 The version is extracted from root `Cargo.toml`:

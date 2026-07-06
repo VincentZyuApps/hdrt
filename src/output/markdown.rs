@@ -1,5 +1,4 @@
-use crate::model::{CapabilityReport, HardwareReport, Section};
-use crate::warning::HdrtWarning;
+use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 
 pub fn render_report(report: &HardwareReport, section: Section) -> String {
     let mut output = Vec::new();

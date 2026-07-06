@@ -1,11 +1,11 @@
 [package]
 name = "hdrt"
-version = "0.1.0-alpha.2"
+version = "0.1.1-alpha.3"
 edition = "2021"
 description = "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/VincentZyu233/hdrt"
+repository = "https://github.com/VincentZyuApps/hdrt"
 keywords = ["hardware", "cli", "tui", "ratatui", "system"]
 categories = ["command-line-utilities"]
 
@@ -26,6 +26,11 @@ which = "7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+sysinfo = "0.32"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security"] }
+winreg = "0.52"
 
 [profile.release]
 opt-level = 3

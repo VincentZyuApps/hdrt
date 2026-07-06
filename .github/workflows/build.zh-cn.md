@@ -96,6 +96,40 @@ manifest 支持：
 |--------|------|
 | `SCOOP_BUCKET_TOKEN` | 可推送到 `VincentZyuApps/scoop-bucket` 的 GitHub PAT |
 
+## 获取 `SCOOP_BUCKET_TOKEN`
+
+推荐使用 fine-grained personal access token。
+
+1. 打开 `https://github.com/settings/personal-access-tokens/new`。
+2. 将 `Token name` 设为类似 `hdrt-scoop-bucket` 的名称。
+3. 选择过期时间，例如 90 天或 180 天。
+4. 将 `Resource owner` 设为包含 `scoop-bucket` 的所有者。
+5. 将 `Repository access` 设为 `Only select repositories`。
+6. 选择 `VincentZyuApps/scoop-bucket`。
+7. 在 `Repository permissions` 中，将 `Contents` 设为 `Read and write`。
+8. 点击 `Generate token`，然后立即复制 token。
+9. 打开 `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`。
+10. 点击 `New repository secret`，名称填写 `SCOOP_BUCKET_TOKEN`，粘贴 token 后保存。
+
+所需权限：
+
+| 项目 | 值 |
+|------|----|
+| Token 类型 | 优先使用 fine-grained PAT |
+| 仓库 | `VincentZyuApps/scoop-bucket` |
+| 仓库权限 | `Contents: Read and write` |
+| Secret 位置 | `VincentZyuApps/hdrt` 仓库 Actions secrets |
+
+Classic PAT 兜底：
+
+- 仅在 fine-grained PAT 无法访问 bucket 时使用。
+- 授予 `repo` scope，然后同样保存为 `SCOOP_BUCKET_TOKEN` secret。
+
+注意事项：
+
+- Token 所属账号必须已经拥有 `VincentZyuApps/scoop-bucket` 的 push 权限。
+- 在 token 过期前替换 secret。
+
 ## 版本号
 
 版本号从根目录 `Cargo.toml` 提取：

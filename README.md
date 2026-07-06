@@ -1,10 +1,10 @@
-![hdrt](https://socialify.git.ci/VincentZyu233/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
+![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
 # hdrt
 
 English | [简体中文](README.zh-cn.md)
 
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyu233/hdrt)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/hdrt)
 [![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/hdrt)
 
 > **[Build Docs](.github/workflows/build.md)**
@@ -23,6 +23,26 @@ Full meaning:
 - `hard ratatui`: a Ratatui-based terminal tool for reading hardware details
 
 Quick memory hint: you can remember `hdrt` as `"hard rata"`, which makes the short command easier to recall.
+
+## Installation
+
+### Windows (Scoop)
+
+> [Scoop Bucket](https://github.com/VincentZyuApps/scoop-bucket/blob/main/bucket/hdrt.json)
+
+```powershell
+scoop bucket add vincentzyu https://github.com/VincentZyuApps/scoop-bucket
+scoop install hdrt
+hdrt doctor
+```
+
+On Windows, `hdrt` uses the lightweight Rust `sysinfo + registry` backend by default. Use PowerShell/CIM explicitly when you need richer hardware fields. `--ps` and `--ps1` are aliases for `--powershell`:
+
+```powershell
+hdrt --powershell all
+hdrt --ps disk
+hdrt --ps1 mem
+```
 
 ## Commands
 

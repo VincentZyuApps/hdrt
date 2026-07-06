@@ -1,4 +1,5 @@
 /target/
+/src.bak/
 **/*.rs.bk
 .DS_Store
 Thumbs.db

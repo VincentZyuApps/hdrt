@@ -6,7 +6,7 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
 
-use crate::cli::TuiTab;
+use crate::app::options::TuiTab;
 
 pub fn run(initial_tab: TuiTab) -> Result<()> {
     let mut terminal = ratatui::init();

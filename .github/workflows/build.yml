@@ -291,12 +291,12 @@ jobs:
                   "64bit": {
                       "url": "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe",
                       "hash": "${HASH_X64}",
-                      "bin": [["hdrt-windows-x86_64-${VERSION}.exe", "hdrt.exe"]]
+                      "bin": [["hdrt-windows-x86_64-${VERSION}.exe", "hdrt"]]
                   },
                   "arm64": {
                       "url": "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe",
                       "hash": "${HASH_ARM64}",
-                      "bin": [["hdrt-windows-aarch64-${VERSION}.exe", "hdrt.exe"]]
+                      "bin": [["hdrt-windows-aarch64-${VERSION}.exe", "hdrt"]]
                   }
               },
               "checkver": {
