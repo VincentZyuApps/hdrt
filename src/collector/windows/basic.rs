@@ -76,7 +76,7 @@ fn collect_cpu(system: &System) -> Option<CpuInfo> {
                     .map(|cpu| cpu.vendor.clone())
                     .unwrap_or_else(|| "Unknown".to_string()),
             ]),
-            physical_cores: System::physical_core_count(),
+            physical_cores: system.physical_core_count(),
             logical_threads: Some(system.cpus().len()),
             frequency: if cpu.frequency() > 0 {
                 format!("{} MHz", cpu.frequency())

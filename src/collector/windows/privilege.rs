@@ -3,9 +3,11 @@ pub(crate) fn is_elevated() -> bool {
 
     use windows_sys::Win32::Foundation::BOOL;
     use windows_sys::Win32::Security::{
-        AllocateAndInitializeSid, CheckTokenMembership, FreeSid, DOMAIN_ALIAS_RID_ADMINS,
-        SECURITY_BUILTIN_DOMAIN_RID, SECURITY_NT_AUTHORITY,
+        AllocateAndInitializeSid, CheckTokenMembership, FreeSid, SECURITY_NT_AUTHORITY,
     };
+
+    const SECURITY_BUILTIN_DOMAIN_RID: u32 = 0x0000_0020;
+    const DOMAIN_ALIAS_RID_ADMINS: u32 = 0x0000_0220;
 
     unsafe {
         let mut admin_group = null_mut();
