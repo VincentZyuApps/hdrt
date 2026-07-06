@@ -2,6 +2,7 @@ use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
 use crate::app::options::OutputFormat;
+use crate::collector::BenchmarkReport;
 use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 
 #[derive(Tabled)]
@@ -54,6 +55,17 @@ struct ToolRow {
     purpose: String,
 }
 
+#[derive(Tabled)]
+struct BenchmarkTableRow {
+    backend: String,
+    ok: String,
+    elapsed: String,
+    disks: usize,
+    memory: usize,
+    warnings: usize,
+    note: String,
+}
+
 pub fn render_report(report: &HardwareReport, section: Section, format: OutputFormat) -> String {
     let mut output = Vec::new();
 
@@ -102,6 +114,28 @@ pub fn render_capabilities(report: &CapabilityReport) -> String {
     }
 
     output.join("\n")
+}
+
+pub fn render_benchmarks(report: &BenchmarkReport) -> String {
+    let rows: Vec<BenchmarkTableRow> = report
+        .rows
+        .iter()
+        .map(|row| BenchmarkTableRow {
+            backend: row.backend.clone(),
+            ok: if row.ok { "yes" } else { "no" }.to_string(),
+            elapsed: format!("{} ms", row.elapsed_ms),
+            disks: row.disks,
+            memory: row.memory,
+            warnings: row.warnings,
+            note: row.note.clone(),
+        })
+        .collect();
+
+    [
+        format!("Platform: {} / {}", report.platform, report.arch),
+        make_table(rows),
+    ]
+    .join("\n")
 }
 
 fn render_disks(report: &HardwareReport, format: OutputFormat) -> String {

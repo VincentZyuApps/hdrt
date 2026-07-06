@@ -36,30 +36,34 @@ scoop install hdrt
 hdrt doctor
 ```
 
-Windows 上默认使用轻量 Rust `sysinfo + registry` 后端；如果需要更详细的 CIM 硬件字段，可以显式启用 PowerShell 后端。`--ps` 和 `--ps1` 是 `--powershell` 的别名：
+Windows 上默认使用 Rust native WMI/CIM 后端；如果 WMI 不可用，会退回轻量 `sysinfo + registry` 后端。只有需要对照或 debug 时才显式启用 PowerShell/CIM 后端。`--ps` 和 `--ps1` 是 `--powershell` 的别名：
 
 ```powershell
 hdrt --powershell all
 hdrt --ps disk
-hdrt --ps1 mem
+hdrt --ps1 memory
 ```
 
 ## 命令
 
 ```bash
 hdrt disk
-hdrt mem
+hdrt memory
 hdrt cpu
-hdrt mb
+hdrt motherboard
 hdrt all
 hdrt doctor
+hdrt doctor --bench
 hdrt tui
 ```
 
 别名：
 
-- `hdrt mem` 和 `hdrt memory`
-- `hdrt mb` 和 `hdrt motherboard`
+- `hdrt d` 对应 `hdrt disk`
+- `hdrt m` 和 `hdrt mem` 对应 `hdrt memory`
+- `hdrt c` 对应 `hdrt cpu`
+- `hdrt b` 和 `hdrt mb` 对应 `hdrt motherboard`
+- `hdrt a` 对应 `hdrt all`
 
 ## 输出格式
 
@@ -78,14 +82,15 @@ hdrt disk --format markdown
 
 - Linux SMART 详情通常需要 `smartctl`，很多场景还需要 `sudo`。
 - Linux 内存插槽序列号通常需要 `dmidecode`，很多场景还需要 `sudo`。
-- Windows 主板、BIOS、磁盘序列号等字段可能需要管理员 PowerShell。
+- Windows 主板、BIOS、磁盘序列号等字段可能需要管理员终端。
 
 推荐检查：
 
 ```bash
 hdrt doctor
+hdrt doctor --bench
 sudo hdrt disk --detail smart
-sudo hdrt mem
+sudo hdrt memory
 ```
 
 ## 状态

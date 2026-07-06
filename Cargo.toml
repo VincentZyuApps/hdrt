@@ -1,6 +1,6 @@
 [package]
 name = "hdrt"
-version = "0.1.1-alpha.4"
+version = "0.1.2-alpha.5"
 edition = "2021"
 description = "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI"
 license = "MIT"
@@ -31,6 +31,7 @@ libc = "0.2"
 sysinfo = "0.32"
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security"] }
 winreg = "0.52"
+wmi = "0.18"
 
 [profile.release]
 opt-level = 3

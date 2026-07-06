@@ -26,7 +26,7 @@ pub(super) fn collect() -> Option<MotherboardInfo> {
             vec![HdrtWarning::with_hint(
                 "dmi-permission",
                 "Some DMI fields may be hidden without root privileges.",
-                "Run sudo hdrt mb for more complete board details.",
+                "Run sudo hdrt motherboard for more complete board details.",
             )]
         },
     })

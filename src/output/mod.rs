@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crate::app::options::OutputFormat;
+use crate::collector::BenchmarkReport;
 use crate::hardware::{CapabilityReport, HardwareReport, Section};
 
 mod json;
@@ -27,6 +28,16 @@ pub fn render_capabilities(report: &CapabilityReport, format: OutputFormat) -> R
         OutputFormat::Markdown => Ok(markdown::render_capabilities(report)),
         OutputFormat::Table | OutputFormat::Wide | OutputFormat::Compact => {
             Ok(table::render_capabilities(report))
+        }
+    }
+}
+
+pub fn render_benchmarks(report: &BenchmarkReport, format: OutputFormat) -> Result<String> {
+    match format {
+        OutputFormat::Json => Ok(serde_json::to_string_pretty(report)?),
+        OutputFormat::Markdown => Ok(markdown::render_benchmarks(report)),
+        OutputFormat::Table | OutputFormat::Wide | OutputFormat::Compact => {
+            Ok(table::render_benchmarks(report))
         }
     }
 }

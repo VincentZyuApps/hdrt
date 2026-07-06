@@ -1,3 +1,4 @@
+use crate::collector::BenchmarkReport;
 use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 
 pub fn render_report(report: &HardwareReport, section: Section) -> String {
@@ -52,6 +53,33 @@ pub fn render_capabilities(report: &CapabilityReport) -> String {
         for note in &report.notes {
             lines.push(format!("- {note}"));
         }
+    }
+
+    lines.join("\n")
+}
+
+pub fn render_benchmarks(report: &BenchmarkReport) -> String {
+    let mut lines = vec![
+        "# hdrt backend benchmark".to_string(),
+        String::new(),
+        format!("- Platform: `{}`", report.platform),
+        format!("- Arch: `{}`", report.arch),
+        String::new(),
+        "| Backend | OK | Elapsed | Disks | Memory | Warnings | Note |".to_string(),
+        "| --- | --- | --- | --- | --- | --- | --- |".to_string(),
+    ];
+
+    for row in &report.rows {
+        lines.push(format!(
+            "| {} | {} | {} ms | {} | {} | {} | {} |",
+            row.backend,
+            if row.ok { "yes" } else { "no" },
+            row.elapsed_ms,
+            row.disks,
+            row.memory,
+            row.warnings,
+            row.note
+        ));
     }
 
     lines.join("\n")

@@ -6,7 +6,7 @@ pub fn capability_report() -> CapabilityReport {
     let mut notes = vec![elevated_hint().to_string()];
     if cfg!(windows) {
         notes.push(
-            "Windows uses the Rust/sysinfo + registry backend by default; use --powershell, --ps, or --ps1 for CIM details."
+            "Windows uses native Rust WMI/CIM by default, then falls back to sysinfo + registry; use --powershell, --ps, or --ps1 only for explicit PowerShell/CIM comparison."
                 .to_string(),
         );
     }
@@ -27,17 +27,24 @@ fn capability_tools() -> Vec<ToolStatus> {
     if cfg!(windows) {
         return vec![
             ToolStatus {
+                name: "native-wmi".to_string(),
+                available: true,
+                path: Some("WMI COM".to_string()),
+                purpose: "default Windows backend for disk, memory, CPU, baseboard, and BIOS inventory"
+                    .to_string(),
+            },
+            ToolStatus {
                 name: "sysinfo".to_string(),
                 available: true,
                 path: Some("built-in Rust crate".to_string()),
-                purpose: "default backend for logical disks, memory total, and CPU basics"
+                purpose: "fallback backend for logical disks, memory total, and CPU basics"
                     .to_string(),
             },
             ToolStatus {
                 name: "windows-registry".to_string(),
                 available: true,
                 path: Some("HKLM".to_string()),
-                purpose: "default backend for CPU, BIOS, baseboard, and physical disk PnP inventory"
+                purpose: "fallback backend for CPU, BIOS, baseboard, and physical disk PnP inventory"
                     .to_string(),
             },
             command_tool(
@@ -96,7 +103,7 @@ fn is_elevated_platform() -> bool {
 
 fn elevated_hint() -> &'static str {
     if cfg!(windows) {
-        "Run hdrt from Administrator PowerShell for more complete hardware fields."
+        "Run hdrt from an Administrator terminal for more complete hardware fields."
     } else {
         "Run sudo hdrt for more complete hardware fields."
     }

@@ -36,30 +36,34 @@ scoop install hdrt
 hdrt doctor
 ```
 
-On Windows, `hdrt` uses the lightweight Rust `sysinfo + registry` backend by default. Use PowerShell/CIM explicitly when you need richer hardware fields. `--ps` and `--ps1` are aliases for `--powershell`:
+On Windows, `hdrt` uses native Rust WMI/CIM by default, then falls back to the lightweight `sysinfo + registry` backend if WMI is unavailable. Use PowerShell/CIM explicitly only when you want a comparison or debug fallback. `--ps` and `--ps1` are aliases for `--powershell`:
 
 ```powershell
 hdrt --powershell all
 hdrt --ps disk
-hdrt --ps1 mem
+hdrt --ps1 memory
 ```
 
 ## Commands
 
 ```bash
 hdrt disk
-hdrt mem
+hdrt memory
 hdrt cpu
-hdrt mb
+hdrt motherboard
 hdrt all
 hdrt doctor
+hdrt doctor --bench
 hdrt tui
 ```
 
 Aliases:
 
-- `hdrt mem` and `hdrt memory`
-- `hdrt mb` and `hdrt motherboard`
+- `hdrt d` for `hdrt disk`
+- `hdrt m` and `hdrt mem` for `hdrt memory`
+- `hdrt c` for `hdrt cpu`
+- `hdrt b` and `hdrt mb` for `hdrt motherboard`
+- `hdrt a` for `hdrt all`
 
 ## Output Formats
 
@@ -78,14 +82,15 @@ Some fields need elevated privileges or external tools:
 
 - Linux SMART details usually need `smartctl`, often with `sudo`.
 - Linux memory slot serial numbers usually need `dmidecode`, often with `sudo`.
-- Windows board, BIOS, and disk serial fields may need Administrator PowerShell.
+- Windows board, BIOS, and disk serial fields may need an Administrator terminal.
 
 Recommended checks:
 
 ```bash
 hdrt doctor
+hdrt doctor --bench
 sudo hdrt disk --detail smart
-sudo hdrt mem
+sudo hdrt memory
 ```
 
 ## Status

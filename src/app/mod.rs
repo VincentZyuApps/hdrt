@@ -22,13 +22,21 @@ fn execute(cli: Cli) -> Result<()> {
 
     match command {
         Command::Disk => print_section(&cli, Section::Disk),
-        Command::Mem => print_section(&cli, Section::Memory),
+        Command::Memory => print_section(&cli, Section::Memory),
         Command::Cpu => print_section(&cli, Section::Cpu),
-        Command::Mb => print_section(&cli, Section::Motherboard),
+        Command::Motherboard => print_section(&cli, Section::Motherboard),
         Command::All => print_section(&cli, Section::All),
-        Command::Doctor => {
-            let capabilities = collector::capability_report();
-            println!("{}", output::render_capabilities(&capabilities, cli.format)?);
+        Command::Doctor { bench } => {
+            if bench {
+                let benchmarks = collector::benchmark_report(CollectOptions {
+                    detail: cli.detail,
+                    powershell: cli.powershell,
+                });
+                println!("{}", output::render_benchmarks(&benchmarks, cli.format)?);
+            } else {
+                let capabilities = collector::capability_report();
+                println!("{}", output::render_capabilities(&capabilities, cli.format)?);
+            }
             Ok(())
         }
         Command::Tui { tab } => tui::run(tab),

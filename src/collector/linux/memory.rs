@@ -39,7 +39,7 @@ fn memory_from_proc() -> MemoryDevice {
         warnings: vec![HdrtWarning::with_hint(
             "dmidecode-unavailable-or-denied",
             "Per-slot memory details are unavailable.",
-            "Install dmidecode and run sudo hdrt mem for slot, part number, and serial fields.",
+            "Install dmidecode and run sudo hdrt memory for slot, part number, and serial fields.",
         )],
         ..MemoryDevice::default()
     }
