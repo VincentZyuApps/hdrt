@@ -176,11 +176,63 @@ jobs:
             echo "AR_x86_64_linux_android=${TOOLCHAIN}/llvm-ar" >> "$GITHUB_ENV"
           fi
 
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux' && contains(matrix.target, 'linux') && !contains(matrix.target, 'android')
+        run: cargo install cargo-deb cargo-generate-rpm
+
       - name: Build release binary
         shell: bash
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.linker || '' }}
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build DEB and RPM packages
+        if: runner.os == 'Linux' && contains(matrix.target, 'linux') && !contains(matrix.target, 'android')
+        shell: bash
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          mkdir -p target/release renamed
+
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "target/release/${{ matrix.binary }}"
+
+          echo "Building DEB package for ${{ matrix.target }}..."
+          cargo deb --target ${{ matrix.target }} --no-build
+
+          # RPM version cannot contain '-'. Convert Cargo pre-release syntax
+          # like 0.1.5-alpha.8 to RPM ordering syntax 0.1.5~alpha.8.
+          RPM_VERSION="${VERSION#v}"
+          RPM_VERSION=$(echo "$RPM_VERSION" | tr '-' '~')
+          echo "📦 Building RPM package for ${{ matrix.target }} with rpm version ${RPM_VERSION}..."
+          echo "Cargo.toml version before RPM sed: $(grep '^version' Cargo.toml)"
+          sed -i "s|^version = .*|version = \"${RPM_VERSION}\"|" Cargo.toml
+          cargo generate-rpm --target ${{ matrix.target }}
+          git restore Cargo.toml
+
+          echo "Built Linux packages:"
+          find target -name '*.deb' -o -name '*.rpm' | sort
+
+          for file in $(find target -name '*.deb'); do
+            cp "$file" "renamed/hdrt-${{ matrix.name }}-${VERSION}.deb"
+          done
+          for file in $(find target -name '*.rpm'); do
+            cp "$file" "renamed/hdrt-${{ matrix.name }}-${VERSION}.rpm"
+          done
+
+          ls -lh renamed/
+
+      - name: Upload DEB artifact
+        if: runner.os == 'Linux' && contains(matrix.target, 'linux') && !contains(matrix.target, 'android')
+        uses: actions/upload-artifact@v4
+        with:
+          name: hdrt-${{ matrix.name }}-${{ needs.check.outputs.version }}.deb
+          path: renamed/*.deb
+
+      - name: Upload RPM artifact
+        if: runner.os == 'Linux' && contains(matrix.target, 'linux') && !contains(matrix.target, 'android')
+        uses: actions/upload-artifact@v4
+        with:
+          name: hdrt-${{ matrix.name }}-${{ needs.check.outputs.version }}.rpm
+          path: renamed/*.rpm
 
       - name: Prepare artifact
         shell: bash
@@ -341,34 +393,73 @@ jobs:
       - name: Upload assets to Gitee
         run: |
           RELEASE_ID="${{ steps.gitee_release.outputs.release_id }}"
+
+          ts() {
+            echo "[$(date -u '+%H:%M:%S UTC') / $(TZ='Asia/Shanghai' date '+%H:%M:%S CST')]"
+          }
+
           SUCCESS=0
           FAIL=0
+          TOTAL=$(find assets -maxdepth 1 -type f | wc -l | tr -d ' ')
+          CURRENT=0
+
+          echo "$(ts) 📤 Uploading assets to Gitee release (ID: $RELEASE_ID)"
+          echo "$(ts) 📁 Total files to process: $TOTAL"
 
           for FILE in assets/*; do
             [ -f "$FILE" ] || continue
+            CURRENT=$((CURRENT + 1))
             FILENAME="$(basename "$FILE")"
-            echo "Uploading $FILENAME to Gitee release $RELEASE_ID"
+            FILESIZE=$(stat -c%s "$FILE" 2>/dev/null || stat -f%z "$FILE" 2>/dev/null || echo 0)
+            FILESIZE_H=$(numfmt --to=iec "$FILESIZE" 2>/dev/null || echo "${FILESIZE} bytes")
+
+            echo ""
+            echo "$(ts) ──── [$CURRENT/$TOTAL] $FILENAME ($FILESIZE_H, ${FILESIZE} bytes) ────"
 
             if grep -Fxq "$FILENAME" existing_gitee_assets.txt 2>/dev/null; then
-              echo "$FILENAME already exists on Gitee; skipping upload"
+              echo "$(ts) ✅ $FILENAME already exists on Gitee; skipping upload"
               SUCCESS=$((SUCCESS + 1))
               continue
             fi
 
-            if curl -s -k --retry 3 --retry-delay 10 --retry-all-errors \
+            START_TIME=$(date +%s)
+            RESPONSE=$(curl -s -k --retry 3 --retry-delay 10 --retry-all-errors \
               --max-time 1200 --connect-timeout 30 \
+              -w "\n%{http_code}" \
               -X POST --header "Content-Type: multipart/form-data" \
               -F "access_token=${GITEE_TOKEN}" \
               -F "file=@${FILE}" \
-              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${RELEASE_ID}/attach_files" \
-              | jq -e '.browser_download_url' > /dev/null; then
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${RELEASE_ID}/attach_files")
+            CURL_EXIT=$?
+            END_TIME=$(date +%s)
+            ELAPSED=$((END_TIME - START_TIME))
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            echo "$(ts) 📡 curl exit=$CURL_EXIT, HTTP=$HTTP_CODE, elapsed=${ELAPSED}s"
+
+            if [ "$CURL_EXIT" -ne 0 ]; then
+              case "$CURL_EXIT" in
+                28) echo "$(ts) ⏱️ TIMEOUT: curl exceeded max-time (${ELAPSED}s)" ;;
+                7) echo "$(ts) 🔌 CONNECTION REFUSED: Gitee server unreachable" ;;
+                56) echo "$(ts) 💥 RECEIVE ERROR: connection reset during transfer" ;;
+                *) echo "$(ts) ❓ CURL ERROR $CURL_EXIT (see https://curl.se/libcurl/c/libcurl-errors.html)" ;;
+              esac
+              FAIL=$((FAIL + 1))
+            elif echo "$BODY" | jq -e '.browser_download_url' > /dev/null; then
+              URL=$(echo "$BODY" | jq -r '.browser_download_url')
+              echo "$(ts) ✅ Uploaded $FILENAME in ${ELAPSED}s: $URL"
               SUCCESS=$((SUCCESS + 1))
             else
+              echo "$(ts) ⚠️ Unexpected Gitee response for $FILENAME:"
+              echo "$BODY" | head -c 500
+              echo ""
               FAIL=$((FAIL + 1))
             fi
           done
 
-          echo "Gitee upload summary: $SUCCESS succeeded, $FAIL failed"
+          echo ""
+          echo "$(ts) 📊 Gitee upload summary: $SUCCESS/$TOTAL succeeded, $FAIL failed"
           [ "$FAIL" -eq 0 ]
 
   publish-scoop-github:

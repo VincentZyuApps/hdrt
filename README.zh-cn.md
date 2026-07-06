@@ -1,13 +1,12 @@
+> **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+> **[📖Build Doc](.github/workflows/build.zh-cn.md)**
+
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
 # 🖥️ hdrt
 
-[English](README.md) | 简体中文
-
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/hdrt)
 [![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/hdrt)
-
-> **[构建文档](.github/workflows/build.zh-cn.md)**
 
 `hdrt` 是一个跨平台硬件信息 CLI / TUI 工具。
 
@@ -24,6 +23,35 @@
 快速记忆：可以把 `hdrt` 记成 `"hard rata"`，这样更容易想起这个简写指令。
 
 ## 📦 安装
+
+### Linux / Android / Termux（脚本）
+
+安装脚本支持：
+
+- apt 系 Linux 发行版，安装 `.deb`
+- dnf 系 Linux 发行版，安装 `.rpm`
+- Android / Termux，安装 Android 二进制
+- x86_64 和 aarch64
+
+GitHub：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh | bash
+hdrt doctor
+```
+
+Gitee 镜像：
+
+```bash
+curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh | bash
+hdrt doctor
+```
+
+安装指定版本：
+
+```bash
+HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
+```
 
 ### Windows (Scoop)
 

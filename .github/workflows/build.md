@@ -1,11 +1,27 @@
-# 🚀 Build & Release Workflow
+> **[📖English](build.md)** | **[📖简体中文](build.zh-cn.md)**
+> **[📖Readme](../../README.md)**
 
-> **[English](build.md)**
-> **[简体中文](build.zh-cn.md)**
+# 🚀 Build & Release Workflow
 
 ## 🧭 Overview
 
 The `hdrt` CI/CD workflow is driven by commit message keywords. Push to `main` with one of the supported keywords and GitHub Actions will build, release, or publish accordingly.
+
+## 🏷️ Version
+
+The version is extracted from root `Cargo.toml`:
+
+```toml
+version = "0.1.0"
+```
+
+The workflow turns it into a Release tag like:
+
+```text
+v0.1.0
+```
+
+Artifact filenames include the same tag.
 
 ## 🔑 Keywords
 
@@ -49,8 +65,8 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 |----------|:---:|--------|-------|
 | Windows | x86_64 | `x86_64-pc-windows-msvc` | `hdrt-windows-x86_64-vX.Y.Z.exe` |
 | Windows | ARM64 | `aarch64-pc-windows-msvc` | `hdrt-windows-aarch64-vX.Y.Z.exe` |
-| Linux | x86_64 | `x86_64-unknown-linux-musl` | `hdrt-linux-x86_64-vX.Y.Z` |
-| Linux | ARM64 | `aarch64-unknown-linux-gnu` | `hdrt-linux-aarch64-vX.Y.Z` |
+| Linux | x86_64 | `x86_64-unknown-linux-musl` | `hdrt-linux-x86_64-vX.Y.Z`, `.deb`, `.rpm` |
+| Linux | ARM64 | `aarch64-unknown-linux-gnu` | `hdrt-linux-aarch64-vX.Y.Z`, `.deb`, `.rpm` |
 | macOS | x86_64 | `x86_64-apple-darwin` | `hdrt-macos-x86_64-vX.Y.Z` |
 | macOS | ARM64 | `aarch64-apple-darwin` | `hdrt-macos-aarch64-vX.Y.Z` |
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
@@ -65,6 +81,7 @@ check
 
 build
   ├─ build 8 release binaries
+  ├─ build .deb and .rpm packages for Linux targets
   └─ upload artifacts
 
 release
@@ -105,9 +122,29 @@ The workflow replaces these placeholders:
 | Placeholder | Value |
 |-------------|-------|
 | `__REPO__` | GitHub repository, such as `VincentZyuApps/hdrt` |
-| `__VERSION__` | Release tag, such as `v0.1.4-alpha.7` |
+| `__VERSION__` | Release tag, such as `v0.1.5-alpha.8` |
 | `__PLAIN_VER__` | Version without the leading `v` |
 | `__BASE_URL__` | GitHub Release asset base URL |
+
+## 📦 Linux Packages And Install Scripts
+
+Linux release builds also publish package files:
+
+- `hdrt-linux-x86_64-vX.Y.Z.deb`
+- `hdrt-linux-x86_64-vX.Y.Z.rpm`
+- `hdrt-linux-aarch64-vX.Y.Z.deb`
+- `hdrt-linux-aarch64-vX.Y.Z.rpm`
+
+The install scripts live in:
+
+```text
+docs/scripts/install/install.sh
+docs/scripts/install/install_gitee.sh
+```
+
+They support apt, dnf, and Android / Termux. Set `HDRT_VERSION=vX.Y.Z` to install a specific release.
+
+Gitee release upload logs include per-file index, file size, curl status, HTTP status, elapsed upload time, and the final success summary.
 
 ## 🍨 Scoop Publish
 
@@ -128,15 +165,19 @@ The manifest supports:
 - Windows x86_64
 - Windows ARM64
 
-Required secret:
+## 🔐 Secrets And Tokens
 
-| Secret | Purpose |
-|--------|---------|
-| `SCOOP_BUCKET_TOKEN` | GitHub PAT with permission to push to `VincentZyuApps/scoop-bucket` |
-| `GITEE_TOKEN` | Gitee token with permission to mirror code, create releases, upload release assets, and push `gitee.com/vincent-zyu/scoop-bucket` |
-| `GITEE_PRIVATE_KEY` | SSH private key used by `Yikun/hub-mirror-action` for GitHub -> Gitee repository mirroring |
+The workflow needs these repository secrets. Use the setup links to jump to the matching guide.
 
-## 🔐 Getting `SCOOP_BUCKET_TOKEN`
+| Secret | Purpose | Setup guide |
+|--------|---------|-------------|
+| `SCOOP_BUCKET_TOKEN` | GitHub PAT with permission to push to `VincentZyuApps/scoop-bucket` | [Getting `SCOOP_BUCKET_TOKEN`](#secret-scoop-bucket-token) |
+| `GITEE_TOKEN` | Gitee token with permission to mirror code, create releases, upload release assets, and push `gitee.com/vincent-zyu/scoop-bucket` | [Getting `GITEE_TOKEN`](#secret-gitee-token) |
+| `GITEE_PRIVATE_KEY` | SSH private key used by `Yikun/hub-mirror-action` for GitHub -> Gitee repository mirroring | [Getting `GITEE_PRIVATE_KEY`](#secret-gitee-private-key) |
+
+<a id="secret-scoop-bucket-token"></a>
+
+### Getting `SCOOP_BUCKET_TOKEN`
 
 Prefer a fine-grained personal access token.
 
@@ -170,7 +211,9 @@ Notes:
 - The token owner must already have push permission to `VincentZyuApps/scoop-bucket`.
 - Replace the secret before the token expires.
 
-## 🔐 Getting `GITEE_TOKEN`
+<a id="secret-gitee-token"></a>
+
+### Getting `GITEE_TOKEN`
 
 Use a dedicated Gitee personal access token for GitHub Actions.
 
@@ -202,32 +245,76 @@ Reference links:
 - Gitee personal access tokens: `https://gitee.com/profile/personal_access_tokens`
 - GitHub repository secrets: `https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
 
-## 🔑 Getting `GITEE_PRIVATE_KEY`
+<a id="secret-gitee-private-key"></a>
+
+### Getting `GITEE_PRIVATE_KEY`
 
 `GITEE_PRIVATE_KEY` is the SSH private key used by `Yikun/hub-mirror-action` to push mirrored commits to Gitee. Use a dedicated key pair for this workflow.
 
-1. Generate a dedicated SSH key pair on your machine:
+1. Generate a dedicated SSH key pair on your machine.
+
+   Bash / Git Bash / Linux / macOS:
 
    ```bash
-   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror
+   mkdir -p ~/.ssh
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror -N ""
    ```
 
-2. Open the public key file and copy its content:
+   Windows PowerShell:
+
+   ```powershell
+   New-Item -ItemType Directory -Force "$HOME\.ssh"
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f "$HOME\.ssh\hdrt_gitee_mirror"
+   ```
+
+   When PowerShell prompts for `Enter passphrase` and `Enter same passphrase again`, press Enter twice to leave the passphrase empty.
+
+   PowerShell note: avoid passing `~/.ssh/hdrt_gitee_mirror` directly to `ssh-keygen`; depending on the shell/program boundary, it may be treated as a literal path and fail with `No such file or directory`. Use `"$HOME\.ssh\hdrt_gitee_mirror"` instead.
+
+2. Open the public key file and copy its content.
+
+   Bash / Git Bash / Linux / macOS:
 
    ```bash
    cat ~/.ssh/hdrt_gitee_mirror.pub
    ```
 
+   Windows PowerShell:
+
+   ```powershell
+   Get-Content "$HOME\.ssh\hdrt_gitee_mirror.pub"
+   ```
+
 3. Sign in to Gitee and open `https://gitee.com/profile/sshkeys`.
 4. Add the public key to the Gitee account that can push to `vincent-zyu/hdrt`.
-5. Open the private key file and copy the full content, including the `BEGIN` and `END` lines:
+5. Open the private key file and copy the full content, including the `BEGIN` and `END` lines.
+
+   Bash / Git Bash / Linux / macOS:
 
    ```bash
    cat ~/.ssh/hdrt_gitee_mirror
    ```
 
+   Windows PowerShell:
+
+   ```powershell
+   Get-Content "$HOME\.ssh\hdrt_gitee_mirror" -Raw
+   ```
+
 6. Open `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`.
 7. Click `New repository secret`, name it `GITEE_PRIVATE_KEY`, paste the private key, then save.
+
+Optional SSH check:
+
+```bash
+ssh -i ~/.ssh/hdrt_gitee_mirror -T git@gitee.com
+```
+
+Windows PowerShell:
+
+```powershell
+ssh -i "$HOME\.ssh\hdrt_gitee_mirror" -T git@gitee.com
+```
 
 Required access:
 
@@ -242,6 +329,7 @@ Notes:
 
 - Prefer a dedicated key without a passphrase for this GitHub Actions job.
 - Do not reuse your personal daily-use SSH private key.
+- If you pasted the private key into a chat, issue, log, or any other shared place, remove the corresponding Gitee public key and GitHub secret, then generate a fresh key pair before using it.
 - Rotate the key if it is ever exposed in logs or copied to an untrusted machine.
 
 Reference links:
@@ -249,18 +337,12 @@ Reference links:
 - Gitee SSH keys: `https://gitee.com/profile/sshkeys`
 - GitHub repository secrets: `https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
 
-## 🏷️ Version
+### Secrets Summary
 
-The version is extracted from root `Cargo.toml`:
+The secrets table is repeated here so it is easy to find from the end of the document.
 
-```toml
-version = "0.1.0"
-```
-
-The workflow turns it into a Release tag like:
-
-```text
-v0.1.0
-```
-
-Artifact filenames include the same tag.
+| Secret | Purpose | Setup guide |
+|--------|---------|-------------|
+| `SCOOP_BUCKET_TOKEN` | GitHub PAT with permission to push to `VincentZyuApps/scoop-bucket` | [Getting `SCOOP_BUCKET_TOKEN`](#secret-scoop-bucket-token) |
+| `GITEE_TOKEN` | Gitee token with permission to mirror code, create releases, upload release assets, and push `gitee.com/vincent-zyu/scoop-bucket` | [Getting `GITEE_TOKEN`](#secret-gitee-token) |
+| `GITEE_PRIVATE_KEY` | SSH private key used by `Yikun/hub-mirror-action` for GitHub -> Gitee repository mirroring | [Getting `GITEE_PRIVATE_KEY`](#secret-gitee-private-key) |

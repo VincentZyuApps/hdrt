@@ -1,13 +1,12 @@
+> **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+> **[📖Build Doc](.github/workflows/build.md)**
+
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
 # 🖥️ hdrt
 
-English | [简体中文](README.zh-cn.md)
-
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/hdrt)
 [![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/hdrt)
-
-> **[Build Docs](.github/workflows/build.md)**
 
 `hdrt` is a cross-platform hardware information CLI/TUI.
 
@@ -24,6 +23,35 @@ Full meaning:
 Quick memory hint: you can remember `hdrt` as `"hard rata"`, which makes the short command easier to recall.
 
 ## 📦 Installation
+
+### Linux / Android / Termux (script)
+
+The install script supports:
+
+- apt-based Linux distributions through `.deb`
+- dnf-based Linux distributions through `.rpm`
+- Android / Termux through the Android binary
+- x86_64 and aarch64
+
+GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh | bash
+hdrt doctor
+```
+
+Gitee mirror:
+
+```bash
+curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh | bash
+hdrt doctor
+```
+
+Install a specific version:
+
+```bash
+HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
+```
 
 ### Windows (Scoop)
 

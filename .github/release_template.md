@@ -9,11 +9,23 @@
 | OS / Arch | x86_64 | ARM64 |
 |-----------|--------|-------|
 | **Windows** | [![binary](https://img.shields.io/badge/binary-x64-0078D4.svg?logo=windows)](__BASE_URL__/hdrt-windows-x86_64-__VERSION__.exe) | [![binary](https://img.shields.io/badge/binary-ARM64-0099CC.svg?logo=windows)](__BASE_URL__/hdrt-windows-aarch64-__VERSION__.exe) |
-| **Linux** | [![binary](https://img.shields.io/badge/binary-x64-E95420.svg?logo=linux)](__BASE_URL__/hdrt-linux-x86_64-__VERSION__) | [![binary](https://img.shields.io/badge/binary-ARM64-E95420.svg?logo=linux)](__BASE_URL__/hdrt-linux-aarch64-__VERSION__) |
+| **Linux** | [![binary](https://img.shields.io/badge/binary-x64-E95420.svg?logo=linux)](__BASE_URL__/hdrt-linux-x86_64-__VERSION__)<br>[![deb](https://img.shields.io/badge/deb-x64-A81D33.svg?logo=debian)](__BASE_URL__/hdrt-linux-x86_64-__VERSION__.deb)<br>[![rpm](https://img.shields.io/badge/rpm-x64-EE0000.svg?logo=redhat)](__BASE_URL__/hdrt-linux-x86_64-__VERSION__.rpm) | [![binary](https://img.shields.io/badge/binary-ARM64-E95420.svg?logo=linux)](__BASE_URL__/hdrt-linux-aarch64-__VERSION__)<br>[![deb](https://img.shields.io/badge/deb-ARM64-A81D33.svg?logo=debian)](__BASE_URL__/hdrt-linux-aarch64-__VERSION__.deb)<br>[![rpm](https://img.shields.io/badge/rpm-ARM64-EE0000.svg?logo=redhat)](__BASE_URL__/hdrt-linux-aarch64-__VERSION__.rpm) |
 | **macOS** | [![binary](https://img.shields.io/badge/binary-Intel-000000.svg?logo=apple)](__BASE_URL__/hdrt-macos-x86_64-__VERSION__) | [![binary](https://img.shields.io/badge/binary-Apple_Silicon-000000.svg?logo=apple)](__BASE_URL__/hdrt-macos-aarch64-__VERSION__) |
 | **Android / Termux** | [![binary](https://img.shields.io/badge/binary-x64-96ed89.svg?logo=android)](__BASE_URL__/hdrt-android-x86_64-__VERSION__) | [![binary](https://img.shields.io/badge/binary-ARM64-168039.svg?logo=android)](__BASE_URL__/hdrt-android-aarch64-__VERSION__) |
 
 ### Quick Start
+
+Linux / Android / Termux install script from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/__REPO__/main/docs/scripts/install/install.sh | bash
+```
+
+Gitee mirror install script:
+
+```bash
+curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh | bash
+```
 
 ```bash
 hdrt doctor

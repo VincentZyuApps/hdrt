@@ -1,11 +1,27 @@
-# 🚀 构建与发布工作流
+> **[📖English](build.md)** | **[📖简体中文](build.zh-cn.md)**
+> **[📖Readme](../../README.zh-cn.md)**
 
-> **[English](build.md)**
-> **[简体中文](build.zh-cn.md)**
+# 🚀 构建与发布工作流
 
 ## 🧭 概述
 
 `hdrt` 的 CI/CD 工作流由 commit message 中的关键词驱动。推送到 `main` 分支时，只要包含支持的关键词，GitHub Actions 就会执行对应的构建、发布或 Scoop 更新流程。
+
+## 🏷️ 版本号
+
+版本号从根目录 `Cargo.toml` 提取：
+
+```toml
+version = "0.1.0"
+```
+
+工作流会转换成 Release tag：
+
+```text
+v0.1.0
+```
+
+构建产物文件名也会包含同一个 tag。
 
 ## 🔑 关键词
 
@@ -49,8 +65,8 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 |------|:---:|--------|------|
 | Windows | x86_64 | `x86_64-pc-windows-msvc` | `hdrt-windows-x86_64-vX.Y.Z.exe` |
 | Windows | ARM64 | `aarch64-pc-windows-msvc` | `hdrt-windows-aarch64-vX.Y.Z.exe` |
-| Linux | x86_64 | `x86_64-unknown-linux-musl` | `hdrt-linux-x86_64-vX.Y.Z` |
-| Linux | ARM64 | `aarch64-unknown-linux-gnu` | `hdrt-linux-aarch64-vX.Y.Z` |
+| Linux | x86_64 | `x86_64-unknown-linux-musl` | `hdrt-linux-x86_64-vX.Y.Z`、`.deb`、`.rpm` |
+| Linux | ARM64 | `aarch64-unknown-linux-gnu` | `hdrt-linux-aarch64-vX.Y.Z`、`.deb`、`.rpm` |
 | macOS | x86_64 | `x86_64-apple-darwin` | `hdrt-macos-x86_64-vX.Y.Z` |
 | macOS | ARM64 | `aarch64-apple-darwin` | `hdrt-macos-aarch64-vX.Y.Z` |
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
@@ -65,6 +81,7 @@ check
 
 build
   ├─ 构建 8 个 release 二进制
+  ├─ 为 Linux target 构建 .deb 和 .rpm 包
   └─ 上传构建产物
 
 release
@@ -105,9 +122,29 @@ Release notes 从下面的模板生成：
 | 占位符 | 值 |
 |--------|----|
 | `__REPO__` | GitHub 仓库，例如 `VincentZyuApps/hdrt` |
-| `__VERSION__` | Release tag，例如 `v0.1.4-alpha.7` |
+| `__VERSION__` | Release tag，例如 `v0.1.5-alpha.8` |
 | `__PLAIN_VER__` | 去掉开头 `v` 的版本号 |
 | `__BASE_URL__` | GitHub Release 产物基础 URL |
+
+## 📦 Linux 包与安装脚本
+
+Linux Release 构建会额外发布这些包：
+
+- `hdrt-linux-x86_64-vX.Y.Z.deb`
+- `hdrt-linux-x86_64-vX.Y.Z.rpm`
+- `hdrt-linux-aarch64-vX.Y.Z.deb`
+- `hdrt-linux-aarch64-vX.Y.Z.rpm`
+
+安装脚本放在：
+
+```text
+docs/scripts/install/install.sh
+docs/scripts/install/install_gitee.sh
+```
+
+脚本支持 apt、dnf 和 Android / Termux。需要安装指定版本时，可以设置 `HDRT_VERSION=vX.Y.Z`。
+
+Gitee Release 上传日志会显示每个文件的序号、文件大小、curl 状态、HTTP 状态、上传耗时，以及最终成功数量汇总。
 
 ## 🍨 Scoop 发布
 
@@ -128,15 +165,19 @@ manifest 支持：
 - Windows x86_64
 - Windows ARM64
 
-需要配置的密钥：
+## 🔐 Secrets 与密钥
 
-| Secret | 用途 |
-|--------|------|
-| `SCOOP_BUCKET_TOKEN` | 可推送到 `VincentZyuApps/scoop-bucket` 的 GitHub PAT |
-| `GITEE_TOKEN` | 可同步代码、创建 Release、上传 Release 产物并推送 `gitee.com/vincent-zyu/scoop-bucket` 的 Gitee token |
-| `GITEE_PRIVATE_KEY` | `Yikun/hub-mirror-action` 用于 GitHub -> Gitee 仓库镜像的 SSH 私钥 |
+工作流需要配置下面这些 repository secrets。可以通过表格里的配置教程链接跳转到对应段落。
 
-## 🔐 获取 `SCOOP_BUCKET_TOKEN`
+| Secret | 用途 | 配置教程 |
+|--------|------|----------|
+| `SCOOP_BUCKET_TOKEN` | 可推送到 `VincentZyuApps/scoop-bucket` 的 GitHub PAT | [获取 `SCOOP_BUCKET_TOKEN`](#secret-scoop-bucket-token) |
+| `GITEE_TOKEN` | 可同步代码、创建 Release、上传 Release 产物并推送 `gitee.com/vincent-zyu/scoop-bucket` 的 Gitee token | [获取 `GITEE_TOKEN`](#secret-gitee-token) |
+| `GITEE_PRIVATE_KEY` | `Yikun/hub-mirror-action` 用于 GitHub -> Gitee 仓库镜像的 SSH 私钥 | [获取 `GITEE_PRIVATE_KEY`](#secret-gitee-private-key) |
+
+<a id="secret-scoop-bucket-token"></a>
+
+### 获取 `SCOOP_BUCKET_TOKEN`
 
 推荐使用 fine-grained personal access token。
 
@@ -170,7 +211,9 @@ Classic PAT 兜底：
 - Token 所属账号必须已经拥有 `VincentZyuApps/scoop-bucket` 的 push 权限。
 - 在 token 过期前替换 secret。
 
-## 🔐 获取 `GITEE_TOKEN`
+<a id="secret-gitee-token"></a>
+
+### 获取 `GITEE_TOKEN`
 
 建议为 GitHub Actions 单独创建一个 Gitee 私人令牌。
 
@@ -202,32 +245,76 @@ Classic PAT 兜底：
 - Gitee 私人令牌：`https://gitee.com/profile/personal_access_tokens`
 - GitHub 仓库 Secrets：`https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
 
-## 🔑 获取 `GITEE_PRIVATE_KEY`
+<a id="secret-gitee-private-key"></a>
+
+### 获取 `GITEE_PRIVATE_KEY`
 
 `GITEE_PRIVATE_KEY` 是 `Yikun/hub-mirror-action` 用来向 Gitee 推送镜像提交的 SSH 私钥。建议为这个 workflow 单独生成一对 SSH key。
 
-1. 在本机生成专用 SSH key：
+1. 在本机生成专用 SSH key。
+
+   Bash / Git Bash / Linux / macOS：
 
    ```bash
-   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror
+   mkdir -p ~/.ssh
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f ~/.ssh/hdrt_gitee_mirror -N ""
    ```
 
-2. 打开公钥文件并复制内容：
+   Windows PowerShell：
+
+   ```powershell
+   New-Item -ItemType Directory -Force "$HOME\.ssh"
+   ssh-keygen -t ed25519 -C "hdrt-gitee-mirror" -f "$HOME\.ssh\hdrt_gitee_mirror"
+   ```
+
+   PowerShell 提示 `Enter passphrase` 和 `Enter same passphrase again` 时，连续按两次回车即可留空 passphrase。
+
+   PowerShell 注意：不要把 `~/.ssh/hdrt_gitee_mirror` 直接传给 `ssh-keygen`；在 shell 和外部程序边界上，它可能会被当成字面路径，最后报 `No such file or directory`。稳妥写法是使用 `"$HOME\.ssh\hdrt_gitee_mirror"`。
+
+2. 打开公钥文件并复制内容。
+
+   Bash / Git Bash / Linux / macOS：
 
    ```bash
    cat ~/.ssh/hdrt_gitee_mirror.pub
    ```
 
+   Windows PowerShell：
+
+   ```powershell
+   Get-Content "$HOME\.ssh\hdrt_gitee_mirror.pub"
+   ```
+
 3. 登录 Gitee，打开 `https://gitee.com/profile/sshkeys`。
 4. 将公钥添加到有权限推送 `vincent-zyu/hdrt` 的 Gitee 账号。
-5. 打开私钥文件并复制完整内容，包括 `BEGIN` 和 `END` 行：
+5. 打开私钥文件并复制完整内容，包括 `BEGIN` 和 `END` 行。
+
+   Bash / Git Bash / Linux / macOS：
 
    ```bash
    cat ~/.ssh/hdrt_gitee_mirror
    ```
 
+   Windows PowerShell：
+
+   ```powershell
+   Get-Content "$HOME\.ssh\hdrt_gitee_mirror" -Raw
+   ```
+
 6. 打开 `VincentZyuApps/hdrt` -> `Settings` -> `Secrets and variables` -> `Actions`。
 7. 点击 `New repository secret`，名称填写 `GITEE_PRIVATE_KEY`，粘贴私钥后保存。
+
+可选 SSH 连通性检查：
+
+```bash
+ssh -i ~/.ssh/hdrt_gitee_mirror -T git@gitee.com
+```
+
+Windows PowerShell：
+
+```powershell
+ssh -i "$HOME\.ssh\hdrt_gitee_mirror" -T git@gitee.com
+```
 
 所需权限：
 
@@ -242,6 +329,7 @@ Classic PAT 兜底：
 
 - 这个 GitHub Actions job 建议使用不带 passphrase 的专用 key。
 - 不要复用日常个人 SSH 私钥。
+- 如果私钥已经被粘贴到聊天、issue、日志或其他共享位置，应删除对应的 Gitee 公钥和 GitHub secret，然后重新生成一对 key 再使用。
 - 如果私钥出现在日志或被复制到不可信机器上，应立即轮换。
 
 参考链接：
@@ -249,18 +337,12 @@ Classic PAT 兜底：
 - Gitee SSH 公钥：`https://gitee.com/profile/sshkeys`
 - GitHub 仓库 Secrets：`https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets`
 
-## 🏷️ 版本号
+### Secrets 速查
 
-版本号从根目录 `Cargo.toml` 提取：
+为了方便从文档末尾查找，这里重复一次密钥表。
 
-```toml
-version = "0.1.0"
-```
-
-工作流会转换成 Release tag：
-
-```text
-v0.1.0
-```
-
-构建产物文件名也会包含同一个 tag。
+| Secret | 用途 | 配置教程 |
+|--------|------|----------|
+| `SCOOP_BUCKET_TOKEN` | 可推送到 `VincentZyuApps/scoop-bucket` 的 GitHub PAT | [获取 `SCOOP_BUCKET_TOKEN`](#secret-scoop-bucket-token) |
+| `GITEE_TOKEN` | 可同步代码、创建 Release、上传 Release 产物并推送 `gitee.com/vincent-zyu/scoop-bucket` 的 Gitee token | [获取 `GITEE_TOKEN`](#secret-gitee-token) |
+| `GITEE_PRIVATE_KEY` | `Yikun/hub-mirror-action` 用于 GitHub -> Gitee 仓库镜像的 SSH 私钥 | [获取 `GITEE_PRIVATE_KEY`](#secret-gitee-private-key) |
