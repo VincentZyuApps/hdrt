@@ -71,7 +71,14 @@ hdrt disk --format table
 hdrt disk --format wide
 hdrt disk --format json
 hdrt disk --format markdown
+hdrt all --lang zh-cn
 ```
+
+Display languages:
+
+- `--lang en-us` is the default.
+- `--lang zh-cn` localizes table, markdown, and TUI labels.
+- Unknown display values are shown as `【--UNKNOWN--】` in English and `【--未知--】` in Simplified Chinese.
 
 ## 🔐 Permissions
 

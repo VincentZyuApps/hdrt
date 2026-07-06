@@ -7,7 +7,7 @@ use clap::Parser;
 
 use crate::collector::{self, CollectOptions};
 use crate::hardware::Section;
-use crate::{output, tui};
+use crate::{output, ui};
 
 use cli::Cli;
 use command::Command;
@@ -32,14 +32,20 @@ fn execute(cli: Cli) -> Result<()> {
                     detail: cli.detail,
                     powershell: cli.powershell,
                 });
-                println!("{}", output::render_benchmarks(&benchmarks, cli.format)?);
+                println!(
+                    "{}",
+                    output::render_benchmarks(&benchmarks, cli.format, cli.lang)?
+                );
             } else {
                 let capabilities = collector::capability_report();
-                println!("{}", output::render_capabilities(&capabilities, cli.format)?);
+                println!(
+                    "{}",
+                    output::render_capabilities(&capabilities, cli.format, cli.lang)?
+                );
             }
             Ok(())
         }
-        Command::Tui { tab } => tui::run(tab),
+        Command::Tui { tab } => ui::run(tab, cli.lang),
     }
 }
 
@@ -57,6 +63,9 @@ fn print_section(cli: &Cli, section: Section) -> Result<()> {
         detail: cli.detail,
         powershell: cli.powershell,
     });
-    println!("{}", output::render_report(&report, section, cli.format)?);
+    println!(
+        "{}",
+        output::render_report(&report, section, cli.format, cli.lang)?
+    );
     Ok(())
 }

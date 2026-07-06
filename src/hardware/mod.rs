@@ -14,6 +14,12 @@ pub use motherboard::MotherboardInfo;
 pub use report::{HardwareReport, Section};
 pub use warning::HdrtWarning;
 
+pub const UNKNOWN: &str = "Unknown";
+
 pub fn unknown() -> String {
-    "Unknown".to_string()
+    UNKNOWN.to_string()
+}
+
+pub fn is_unknown(value: &str) -> bool {
+    value == UNKNOWN
 }

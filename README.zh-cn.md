@@ -71,7 +71,14 @@ hdrt disk --format table
 hdrt disk --format wide
 hdrt disk --format json
 hdrt disk --format markdown
+hdrt all --lang zh-cn
 ```
+
+显示语言：
+
+- `--lang en-us` 是默认值。
+- `--lang zh-cn` 会本地化表格、Markdown 和 TUI 标签。
+- 未知显示值在英文下显示为 `【--UNKNOWN--】`，在简体中文下显示为 `【--未知--】`。
 
 ## 🔐 权限
 

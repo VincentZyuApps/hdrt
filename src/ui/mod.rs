@@ -7,24 +7,29 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
 
 use crate::app::options::TuiTab;
+use crate::i18n::{t, Lang};
 
-pub fn run(initial_tab: TuiTab) -> Result<()> {
+pub fn run(initial_tab: TuiTab, lang: Lang) -> Result<()> {
     let mut terminal = ratatui::init();
-    let result = run_inner(&mut terminal, initial_tab);
+    let result = run_inner(&mut terminal, initial_tab, lang);
     ratatui::restore();
     result
 }
 
-fn run_inner(terminal: &mut ratatui::DefaultTerminal, initial_tab: TuiTab) -> Result<()> {
+fn run_inner(
+    terminal: &mut ratatui::DefaultTerminal,
+    initial_tab: TuiTab,
+    lang: Lang,
+) -> Result<()> {
     let mut tab = tab_index(initial_tab);
     let titles = [
-        "Overview",
-        "Disk",
-        "Memory",
-        "CPU",
-        "Motherboard",
-        "Health",
-        "Warnings",
+        t(lang, "section.overview"),
+        t(lang, "section.disk"),
+        t(lang, "section.memory"),
+        t(lang, "section.cpu"),
+        t(lang, "section.motherboard"),
+        t(lang, "section.health"),
+        t(lang, "warnings"),
     ];
 
     loop {
@@ -41,11 +46,11 @@ fn run_inner(terminal: &mut ratatui::DefaultTerminal, initial_tab: TuiTab) -> Re
             frame.render_widget(tabs, chunks[0]);
 
             let body = Paragraph::new(vec![
-                Line::from("Hardware Device Rust Ratatui"),
-                Line::from("Memory hint: hard rata"),
+                Line::from(t(lang, "tui.subtitle")),
+                Line::from(t(lang, "tui.memory_hint")),
                 Line::from(""),
-                Line::from("This is the first TUI shell. Data panels will be wired next."),
-                Line::from("Press Tab / Left / Right to switch tabs, q or Esc to exit."),
+                Line::from(t(lang, "tui.placeholder")),
+                Line::from(t(lang, "tui.help")),
             ])
             .block(Block::bordered().title(titles[tab]))
             .wrap(Wrap { trim: true });
