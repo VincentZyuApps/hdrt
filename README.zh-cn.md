@@ -1,6 +1,6 @@
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
-# hdrt
+# 🖥️ hdrt
 
 [English](README.md) | 简体中文
 
@@ -14,8 +14,7 @@
 名称含义：
 
 - `hd`: Hardware Device
-- `r`: Rust
-- `t`: Ratatui
+- `rt`: Rust Ratatui
 
 完整解释：
 
@@ -24,7 +23,7 @@
 
 快速记忆：可以把 `hdrt` 记成 `"hard rata"`，这样更容易想起这个简写指令。
 
-## 安装
+## 📦 安装
 
 ### Windows (Scoop)
 
@@ -44,7 +43,7 @@ hdrt --ps disk
 hdrt --ps1 memory
 ```
 
-## 命令
+## ⌨️ 命令
 
 ```bash
 hdrt disk
@@ -65,7 +64,7 @@ hdrt tui
 - `hdrt b` 和 `hdrt mb` 对应 `hdrt motherboard`
 - `hdrt a` 对应 `hdrt all`
 
-## 输出格式
+## 🧾 输出格式
 
 ```bash
 hdrt disk --format table
@@ -74,7 +73,7 @@ hdrt disk --format json
 hdrt disk --format markdown
 ```
 
-## 权限
+## 🔐 权限
 
 `hdrt` 会尽量在当前权限下显示尽可能多的信息。
 
@@ -93,6 +92,6 @@ sudo hdrt disk --detail smart
 sudo hdrt memory
 ```
 
-## 状态
+## 🚧 状态
 
 项目处于早期开发阶段。第一版目标是 Linux 优先的 CLI MVP，然后逐步补 Windows、macOS、Android/Termux 和更完整的 Ratatui UI。

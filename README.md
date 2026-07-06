@@ -1,6 +1,6 @@
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
-# hdrt
+# 🖥️ hdrt
 
 English | [简体中文](README.zh-cn.md)
 
@@ -14,8 +14,7 @@ English | [简体中文](README.zh-cn.md)
 Name meaning:
 
 - `hd`: Hardware Device
-- `r`: Rust
-- `t`: Ratatui
+- `rt`: Rust Ratatui
 
 Full meaning:
 
@@ -24,7 +23,7 @@ Full meaning:
 
 Quick memory hint: you can remember `hdrt` as `"hard rata"`, which makes the short command easier to recall.
 
-## Installation
+## 📦 Installation
 
 ### Windows (Scoop)
 
@@ -44,7 +43,7 @@ hdrt --ps disk
 hdrt --ps1 memory
 ```
 
-## Commands
+## ⌨️ Commands
 
 ```bash
 hdrt disk
@@ -65,7 +64,7 @@ Aliases:
 - `hdrt b` and `hdrt mb` for `hdrt motherboard`
 - `hdrt a` for `hdrt all`
 
-## Output Formats
+## 🧾 Output Formats
 
 ```bash
 hdrt disk --format table
@@ -74,7 +73,7 @@ hdrt disk --format json
 hdrt disk --format markdown
 ```
 
-## Permissions
+## 🔐 Permissions
 
 `hdrt` should show as much as it can with the current permissions.
 
@@ -93,6 +92,6 @@ sudo hdrt disk --detail smart
 sudo hdrt memory
 ```
 
-## Status
+## 🚧 Status
 
 This project is in early development. The first usable target is a Linux-first CLI MVP, followed by Windows, macOS, Android/Termux, and a richer Ratatui UI.
