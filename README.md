@@ -1,4 +1,5 @@
 > **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+<br>
 > **[📖Build Doc](.github/workflows/build.md)**
 
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
@@ -71,14 +72,6 @@ scoop install hdrt
 hdrt doctor
 ```
 
-On Windows, `hdrt` uses native Rust WMI/CIM by default, then falls back to the lightweight `sysinfo + registry` backend if WMI is unavailable. Use PowerShell/CIM explicitly only when you want a comparison or debug fallback. `--ps` and `--ps1` are aliases for `--powershell`:
-
-```powershell
-hdrt --powershell all
-hdrt --ps disk
-hdrt --ps1 memory
-```
-
 ## ⌨️ Commands
 
 ```bash
@@ -89,6 +82,8 @@ hdrt motherboard
 hdrt all
 hdrt doctor
 hdrt doctor --bench
+hdrt --backend native
+hdrt --backend shell disk
 hdrt tui
 ```
 
@@ -100,6 +95,32 @@ Aliases:
 - `hdrt b` and `hdrt mb` for `hdrt motherboard`
 - `hdrt a` for `hdrt all`
 
+## 🧩 Backends
+
+`hdrt` uses `--backend auto` by default. Backend selection is a global option, so it can be used with any command.
+
+| Backend | Behavior | External commands |
+|---------|----------|-------------------|
+| `auto` | Native collectors first; shell collectors may fill missing fields. | May run shell commands |
+| `native` | Rust/native system APIs only. Useful for checking what `hdrt` can collect without command helpers. | No |
+| `shell` | Force shell-based collectors. Useful for comparing with system tools. | Yes |
+
+Examples:
+
+```bash
+hdrt --backend auto all
+hdrt --backend native disk
+hdrt --backend shell memory
+hdrt doctor --bench
+```
+
+Platform notes:
+
+- Windows `native` uses Rust WMI/CIM and native fallback code; `shell` uses the PowerShell/CIM script.
+- Linux `native` uses `/sys`, `/proc`, and DMI files; `shell` uses tools such as `lsblk`, `smartctl`, and `dmidecode`.
+- Linux disk health is filled by `auto` / `shell` through `smartctl` when available. `native` keeps health unknown until native SMART/NVMe probing is implemented.
+- Android / Termux and macOS accept `--backend`, but their backend split is still narrower than Windows/Linux.
+
 ## 🧾 Output Formats
 
 ```bash
@@ -108,6 +129,7 @@ hdrt disk --format wide
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt all --lang zh-cn
+hdrt disk --detail smart
 ```
 
 Display languages:
@@ -115,6 +137,12 @@ Display languages:
 - `--lang en-us` is the default.
 - `--lang zh-cn` localizes table, markdown, and TUI labels.
 - Unknown display values are shown as `【--UNKNOWN--】` in English and `【--未知--】` in Simplified Chinese.
+
+Detail levels:
+
+- `--detail basic` is the default.
+- `--detail smart` asks disk collectors for SMART and health details when the selected backend can provide them.
+- `--detail full` is reserved for the richest supported detail level.
 
 ## 🔐 Permissions
 
@@ -124,7 +152,8 @@ Some fields need elevated privileges or external tools:
 
 - Linux SMART details usually need `smartctl`, often with `sudo`.
 - Linux memory slot serial numbers usually need `dmidecode`, often with `sudo`.
-- Linux disk inventory uses `lsblk` by default and falls back to `df` logical volumes when `lsblk` is unavailable.
+- Linux `--backend native` avoids shell commands, so some fields such as disk health may stay unknown.
+- Linux `--backend auto` and `--backend shell` can use tools such as `lsblk`, `smartctl`, and `dmidecode`.
 - Android / Termux uses `/proc`, `df`, and `getprop`; Android may hide low-level disk, board, serial, firmware, and health fields.
 - Windows board, BIOS, and disk serial fields may need an Administrator terminal.
 
@@ -133,6 +162,8 @@ Recommended checks:
 ```bash
 hdrt doctor
 hdrt doctor --bench
+hdrt --backend native disk
+hdrt --backend shell disk --detail smart
 sudo hdrt disk --detail smart
 sudo hdrt memory
 ```

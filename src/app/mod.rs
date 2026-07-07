@@ -13,7 +13,7 @@ use cli::Cli;
 use command::Command;
 
 pub fn run() -> Result<()> {
-    let cli = Cli::parse_from(normalized_args());
+    let cli = Cli::parse();
     execute(cli)
 }
 
@@ -30,7 +30,7 @@ fn execute(cli: Cli) -> Result<()> {
             if bench {
                 let benchmarks = collector::benchmark_report(CollectOptions {
                     detail: cli.detail,
-                    powershell: cli.powershell,
+                    backend: cli.backend,
                 });
                 println!(
                     "{}",
@@ -49,19 +49,10 @@ fn execute(cli: Cli) -> Result<()> {
     }
 }
 
-fn normalized_args() -> Vec<String> {
-    std::env::args()
-        .map(|arg| match arg.as_str() {
-            "--ps" | "--ps1" => "--powershell".to_string(),
-            _ => arg,
-        })
-        .collect()
-}
-
 fn print_section(cli: &Cli, section: Section) -> Result<()> {
     let report = collector::collect_report(CollectOptions {
         detail: cli.detail,
-        powershell: cli.powershell,
+        backend: cli.backend,
     });
     println!(
         "{}",

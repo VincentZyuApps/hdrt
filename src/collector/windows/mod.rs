@@ -4,55 +4,98 @@ mod disk;
 mod memory;
 mod motherboard;
 mod native_wmi;
-mod powershell;
 pub(crate) mod privilege;
 mod registry;
+mod shell;
 mod util;
 
+use crate::app::options::Backend;
 use crate::collector::CollectOptions;
 use crate::collector::{BenchmarkReport, BenchmarkRow};
 use crate::hardware::{HardwareReport, HdrtWarning};
 use std::time::Instant;
 
 pub fn collect_report(options: CollectOptions) -> HardwareReport {
-    if options.powershell {
-        match powershell::collect_report() {
-            Ok(mut report) => {
-                add_administrator_warning(&mut report);
-                report
-            }
-            Err(err) => powershell::fallback_report(err),
-        }
-    } else {
-        match native_wmi::collect_report() {
-            Ok(mut report) => {
-                add_administrator_warning(&mut report);
-                report
-            }
-            Err(err) => {
-                let mut report = basic::collect_report();
-                report.warnings.push(HdrtWarning::with_hint(
-                    "windows-native-wmi-fallback",
-                    format!("Native WMI backend failed: {err}"),
-                    "Using the basic sysinfo + registry backend. Run hdrt --powershell for a PowerShell/CIM comparison.",
-                ));
-                report
-            }
-        }
+    match options.backend {
+        Backend::Auto => collect_auto(),
+        Backend::Native => collect_native(),
+        Backend::Shell => collect_shell(),
     }
 }
 
 pub fn benchmark_report(_options: CollectOptions) -> BenchmarkReport {
     let rows = vec![
+        benchmark_auto(),
+        benchmark_native(),
+        benchmark_shell(),
         benchmark_basic(),
-        benchmark_native_wmi(),
-        benchmark_powershell(),
     ];
 
     BenchmarkReport {
         platform: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
         rows,
+    }
+}
+
+fn collect_auto() -> HardwareReport {
+    match native_wmi::collect_report() {
+        Ok(mut report) => {
+            add_administrator_warning(&mut report);
+            report
+        }
+        Err(native_err) => match shell::collect_report() {
+            Ok(mut report) => {
+                report.warnings.push(HdrtWarning::with_hint(
+                    "windows-auto-shell-fallback",
+                    format!("Native WMI backend failed: {native_err}"),
+                    "Using the shell backend because --backend auto permits external collectors.",
+                ));
+                add_administrator_warning(&mut report);
+                report
+            }
+            Err(shell_err) => {
+                let mut report = basic::collect_report();
+                report.warnings.push(HdrtWarning::with_hint(
+                    "windows-auto-basic-fallback",
+                    format!(
+                        "Native WMI backend failed: {native_err}; shell backend failed: {shell_err}"
+                    ),
+                    "Using the basic sysinfo + registry backend.",
+                ));
+                add_administrator_warning(&mut report);
+                report
+            }
+        },
+    }
+}
+
+fn collect_native() -> HardwareReport {
+    match native_wmi::collect_report() {
+        Ok(mut report) => {
+            add_administrator_warning(&mut report);
+            report
+        }
+        Err(err) => {
+            let mut report = basic::collect_report();
+            report.warnings.push(HdrtWarning::with_hint(
+                "windows-native-basic-fallback",
+                format!("Native WMI backend failed: {err}"),
+                "Using the native basic sysinfo + registry backend.",
+            ));
+            add_administrator_warning(&mut report);
+            report
+        }
+    }
+}
+
+fn collect_shell() -> HardwareReport {
+    match shell::collect_report() {
+        Ok(mut report) => {
+            add_administrator_warning(&mut report);
+            report
+        }
+        Err(err) => shell::fallback_report(err),
     }
 }
 
@@ -66,6 +109,17 @@ fn add_administrator_warning(report: &mut HardwareReport) {
     }
 }
 
+fn benchmark_auto() -> BenchmarkRow {
+    let started = Instant::now();
+    let report = collect_auto();
+    benchmark_ok(
+        "auto",
+        started,
+        report,
+        "native first, shell/basic fallback",
+    )
+}
+
 fn benchmark_basic() -> BenchmarkRow {
     let started = Instant::now();
     let report = basic::collect_report();
@@ -77,19 +131,22 @@ fn benchmark_basic() -> BenchmarkRow {
     )
 }
 
-fn benchmark_native_wmi() -> BenchmarkRow {
+fn benchmark_native() -> BenchmarkRow {
     let started = Instant::now();
-    match native_wmi::collect_report() {
-        Ok(report) => benchmark_ok("native-wmi", started, report, "Rust WMI/CIM backend"),
-        Err(err) => benchmark_err("native-wmi", started, err),
-    }
+    let report = collect_native();
+    benchmark_ok(
+        "native",
+        started,
+        report,
+        "Rust WMI/CIM with basic native fallback",
+    )
 }
 
-fn benchmark_powershell() -> BenchmarkRow {
+fn benchmark_shell() -> BenchmarkRow {
     let started = Instant::now();
-    match powershell::collect_report() {
-        Ok(report) => benchmark_ok("powershell", started, report, "external PowerShell/CIM backend"),
-        Err(err) => benchmark_err("powershell", started, err),
+    match shell::collect_report() {
+        Ok(report) => benchmark_ok("shell", started, report, "external PowerShell/CIM backend"),
+        Err(err) => benchmark_err("shell", started, err),
     }
 }
 

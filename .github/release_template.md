@@ -52,6 +52,6 @@ scoop install hdrt@__PLAIN_VER__
 
 ### Notes
 
-- Windows uses native Rust WMI/CIM by default. Use `--powershell`, `--ps`, or `--ps1` only when you explicitly want the PowerShell/CIM backend.
-- Linux uses `/proc`, `lsblk`, `dmidecode`, and optional `smartctl` when available.
+- `hdrt` uses `--backend auto` by default. Use `--backend native` to avoid external commands, or `--backend shell` to force shell-based collectors.
+- Linux native mode uses `/sys` and `/proc`; auto/shell modes can use `lsblk`, `dmidecode`, and optional `smartctl` for richer fields.
 - Android / Termux uses `/proc`, `df`, and `getprop`; low-level board, serial, firmware, and disk health fields may be hidden by Android.

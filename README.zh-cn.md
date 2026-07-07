@@ -1,4 +1,5 @@
 > **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+<br>
 > **[📖Build Doc](.github/workflows/build.zh-cn.md)**
 
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
@@ -71,14 +72,6 @@ scoop install hdrt
 hdrt doctor
 ```
 
-Windows 上默认使用 Rust native WMI/CIM 后端；如果 WMI 不可用，会退回轻量 `sysinfo + registry` 后端。只有需要对照或 debug 时才显式启用 PowerShell/CIM 后端。`--ps` 和 `--ps1` 是 `--powershell` 的别名：
-
-```powershell
-hdrt --powershell all
-hdrt --ps disk
-hdrt --ps1 memory
-```
-
 ## ⌨️ 命令
 
 ```bash
@@ -89,6 +82,8 @@ hdrt motherboard
 hdrt all
 hdrt doctor
 hdrt doctor --bench
+hdrt --backend native
+hdrt --backend shell disk
 hdrt tui
 ```
 
@@ -100,6 +95,32 @@ hdrt tui
 - `hdrt b` 和 `hdrt mb` 对应 `hdrt motherboard`
 - `hdrt a` 对应 `hdrt all`
 
+## 🧩 后端
+
+`hdrt` 默认使用 `--backend auto`。后端选择是全局参数，可以和任意命令一起使用。
+
+| 后端 | 行为 | 是否启动外部命令 |
+|------|------|------------------|
+| `auto` | 优先使用 native 采集器；字段缺失时允许 shell 采集器补齐。 | 可能会 |
+| `native` | 只使用 Rust/native 系统接口。适合检查不依赖命令辅助时能采集到什么。 | 不会 |
+| `shell` | 强制使用 shell 后端。适合和系统工具输出做对照。 | 会 |
+
+示例：
+
+```bash
+hdrt --backend auto all
+hdrt --backend native disk
+hdrt --backend shell memory
+hdrt doctor --bench
+```
+
+平台说明：
+
+- Windows `native` 使用 Rust WMI/CIM 和 native fallback 代码；`shell` 使用 PowerShell/CIM 脚本。
+- Linux `native` 使用 `/sys`、`/proc` 和 DMI 文件；`shell` 使用 `lsblk`、`smartctl`、`dmidecode` 等工具。
+- Linux 硬盘健康状态由 `auto` / `shell` 在可用时通过 `smartctl` 补齐。`native` 会暂时保持未知，后续再做原生 SMART/NVMe 探测。
+- Android / Termux 和 macOS 接受 `--backend` 参数，但后端拆分还没有 Windows/Linux 完整。
+
 ## 🧾 输出格式
 
 ```bash
@@ -108,6 +129,7 @@ hdrt disk --format wide
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt all --lang zh-cn
+hdrt disk --detail smart
 ```
 
 显示语言：
@@ -115,6 +137,12 @@ hdrt all --lang zh-cn
 - `--lang en-us` 是默认值。
 - `--lang zh-cn` 会本地化表格、Markdown 和 TUI 标签。
 - 未知显示值在英文下显示为 `【--UNKNOWN--】`，在简体中文下显示为 `【--未知--】`。
+
+详情级别：
+
+- `--detail basic` 是默认值。
+- `--detail smart` 会让磁盘采集器在当前后端支持时读取 SMART 和健康详情。
+- `--detail full` 预留给最完整的详情级别。
 
 ## 🔐 权限
 
@@ -124,7 +152,8 @@ hdrt all --lang zh-cn
 
 - Linux SMART 详情通常需要 `smartctl`，很多场景还需要 `sudo`。
 - Linux 内存插槽序列号通常需要 `dmidecode`，很多场景还需要 `sudo`。
-- Linux 磁盘采集默认使用 `lsblk`，如果不可用会退回 `df` 逻辑卷信息。
+- Linux `--backend native` 不启动 shell 命令，所以硬盘健康状态等字段可能保持未知。
+- Linux `--backend auto` 和 `--backend shell` 可以使用 `lsblk`、`smartctl`、`dmidecode` 等工具。
 - Android / Termux 使用 `/proc`、`df` 和 `getprop`；Android 可能隐藏底层磁盘、主板、序列号、固件和健康状态字段。
 - Windows 主板、BIOS、磁盘序列号等字段可能需要管理员终端。
 
@@ -133,6 +162,8 @@ hdrt all --lang zh-cn
 ```bash
 hdrt doctor
 hdrt doctor --bench
+hdrt --backend native disk
+hdrt --backend shell disk --detail smart
 sudo hdrt disk --detail smart
 sudo hdrt memory
 ```

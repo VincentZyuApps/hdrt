@@ -21,8 +21,8 @@ use macos as platform;
 #[cfg(windows)]
 use windows as platform;
 
-pub use capability::capability_report;
 pub use benchmark::{BenchmarkReport, BenchmarkRow};
+pub use capability::capability_report;
 pub use options::CollectOptions;
 
 use crate::hardware::HardwareReport;
@@ -35,12 +35,12 @@ pub fn benchmark_report(options: CollectOptions) -> BenchmarkReport {
     benchmark_report_platform(options)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn benchmark_report_platform(options: CollectOptions) -> BenchmarkReport {
-    windows::benchmark_report(options)
+    platform::benchmark_report(options)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn benchmark_report_platform(options: CollectOptions) -> BenchmarkReport {
     use std::time::Instant;
 
@@ -62,7 +62,12 @@ fn benchmark_report_platform(options: CollectOptions) -> BenchmarkReport {
     }
 }
 
-#[cfg(not(any(target_os = "android", target_os = "linux", target_os = "macos", windows)))]
+#[cfg(not(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "macos",
+    windows
+)))]
 mod platform {
     use crate::collector::CollectOptions;
     use crate::hardware::{HardwareReport, HdrtWarning};

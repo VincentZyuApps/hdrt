@@ -34,9 +34,9 @@ pub fn fallback_report(err: String) -> HardwareReport {
             ..MotherboardInfo::default()
         }),
         warnings: vec![HdrtWarning::with_hint(
-            "windows-powershell-collector-failed",
+            "windows-shell-collector-failed",
             err,
-            "Run hdrt --powershell from PowerShell or Administrator PowerShell and try again.",
+            "Run hdrt --backend shell from PowerShell or Administrator PowerShell and try again.",
         )],
     }
 }
@@ -52,12 +52,21 @@ fn run_json() -> Result<Value, String> {
         }
     }
 
-    Err(format!("all PowerShell runners failed: {}", errors.join("; ")))
+    Err(format!(
+        "all PowerShell runners failed: {}",
+        errors.join("; ")
+    ))
 }
 
 fn run_program(program: &str, script: &str) -> Result<Value, String> {
     let output = Command::new(program)
-        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ])
         .output()
         .map_err(|err| format!("failed to start: {err}"))?;
 

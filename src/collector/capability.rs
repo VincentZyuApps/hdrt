@@ -6,7 +6,13 @@ pub fn capability_report() -> CapabilityReport {
     let mut notes = vec![elevated_hint().to_string()];
     if cfg!(windows) {
         notes.push(
-            "Windows uses native Rust WMI/CIM by default, then falls back to sysinfo + registry; use --powershell, --ps, or --ps1 only for explicit PowerShell/CIM comparison."
+            "Windows uses --backend auto by default: native Rust WMI/CIM first, shell PowerShell/CIM fallback when needed."
+                .to_string(),
+        );
+    }
+    if cfg!(target_os = "linux") {
+        notes.push(
+            "Linux uses --backend auto by default: native /sys and /proc first, shell tools such as lsblk, smartctl, and dmidecode to fill missing fields."
                 .to_string(),
         );
     }
@@ -54,11 +60,11 @@ fn capability_tools() -> Vec<ToolStatus> {
             },
             command_tool(
                 "powershell",
-                "optional --powershell/--ps/--ps1 CIM backend for richer Windows hardware fields",
+                "Windows shell backend used by --backend shell or --backend auto fallback",
             ),
             command_tool(
                 "pwsh",
-                "optional PowerShell 7 executable; hdrt currently prefers Windows PowerShell",
+                "optional PowerShell 7 executable for the Windows shell backend",
             ),
         ];
     }
@@ -80,16 +86,37 @@ fn capability_tools() -> Vec<ToolStatus> {
         ];
     }
 
-    [
-        ("smartctl", "SMART, firmware, health, model family"),
-        ("dmidecode", "memory slots, baseboard, BIOS details"),
-        ("nvme", "NVMe controller and SMART details"),
-        ("lsblk", "Linux block device inventory"),
-        ("lscpu", "Linux CPU details"),
-    ]
-    .into_iter()
-    .map(|(name, purpose)| command_tool(name, purpose))
-    .collect()
+    if cfg!(target_os = "linux") {
+        let mut tools = vec![
+            ToolStatus {
+                name: "sysfs".to_string(),
+                available: true,
+                path: Some("/sys/block + /sys/class/dmi/id".to_string()),
+                purpose: "native Linux disk, bus, firmware, baseboard, and BIOS inventory"
+                    .to_string(),
+            },
+            ToolStatus {
+                name: "procfs".to_string(),
+                available: true,
+                path: Some("/proc/cpuinfo + /proc/meminfo".to_string()),
+                purpose: "native Linux CPU and memory totals".to_string(),
+            },
+        ];
+        tools.extend(
+            [
+                ("smartctl", "shell SMART, firmware, health, model family"),
+                ("dmidecode", "shell memory slots, baseboard, BIOS details"),
+                ("nvme", "shell NVMe controller and SMART details"),
+                ("lsblk", "shell Linux block device inventory"),
+                ("lscpu", "shell Linux CPU details"),
+            ]
+            .into_iter()
+            .map(|(name, purpose)| command_tool(name, purpose)),
+        );
+        return tools;
+    }
+
+    Vec::new()
 }
 
 fn command_tool(name: &str, purpose: &str) -> ToolStatus {

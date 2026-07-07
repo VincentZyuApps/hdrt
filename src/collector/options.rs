@@ -1,7 +1,7 @@
-use crate::app::options::DetailLevel;
+use crate::app::options::{Backend, DetailLevel};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CollectOptions {
     pub detail: DetailLevel,
-    pub powershell: bool,
+    pub backend: Backend,
 }

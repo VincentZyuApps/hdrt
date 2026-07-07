@@ -437,7 +437,7 @@ dependencies = [
 
 [[package]]
 name = "hdrt"
-version = "0.1.4-alpha.7"
+version = "0.1.6-alpha.9"
 dependencies = [
  "anyhow",
  "clap",

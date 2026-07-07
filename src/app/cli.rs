@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use super::command::Command;
-use super::options::{DetailLevel, OutputFormat};
+use super::options::{Backend, DetailLevel, OutputFormat};
 use crate::i18n::Lang;
 
 #[derive(Debug, Clone, Parser)]
@@ -19,13 +19,13 @@ pub struct Cli {
     #[arg(long, global = true, value_enum, default_value_t = DetailLevel::Basic)]
     pub detail: DetailLevel,
 
+    /// Hardware collection backend.
+    ///
+    /// auto uses native collectors first and may use shell commands to fill missing fields.
+    #[arg(long, global = true, value_enum, default_value_t = Backend::Auto)]
+    pub backend: Backend,
+
     /// Display language for table, markdown, and TUI output.
     #[arg(long, global = true, value_enum, default_value_t = Lang::EnUs)]
     pub lang: Lang,
-
-    /// Use PowerShell/CIM backend on Windows for more detailed hardware fields.
-    ///
-    /// Aliases: --ps, --ps1
-    #[arg(long, global = true)]
-    pub powershell: bool,
 }

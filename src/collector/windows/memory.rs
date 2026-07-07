@@ -44,7 +44,7 @@ pub fn collect(root: &Value) -> Vec<MemoryDevice> {
             warnings: vec![HdrtWarning::with_hint(
                 "memory-unavailable",
                 "Windows memory module information was not returned by CIM.",
-                "Run hdrt --powershell from Administrator PowerShell and try again.",
+                "Run hdrt --backend shell from Administrator PowerShell and try again.",
             )],
             ..MemoryDevice::default()
         }]
