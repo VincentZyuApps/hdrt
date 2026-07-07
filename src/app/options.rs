@@ -29,6 +29,14 @@ pub enum DetailLevel {
 
 #[derive(Debug, Clone, Copy, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub enum SpinnerStyle {
+    Unicode,
+    Ascii,
+    Dots,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum TuiTab {
     Overview,
     Disk,

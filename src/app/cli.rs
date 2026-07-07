@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use super::command::Command;
-use super::options::{Backend, DetailLevel, OutputFormat};
+use super::options::{Backend, DetailLevel, OutputFormat, SpinnerStyle};
 use crate::i18n::Lang;
 
 #[derive(Debug, Clone, Parser)]
@@ -24,6 +24,14 @@ pub struct Cli {
     /// auto uses native collectors first and may use shell commands to fill missing fields.
     #[arg(long, global = true, value_enum, default_value_t = Backend::Auto)]
     pub backend: Backend,
+
+    /// Disable the interactive loading spinner.
+    #[arg(long, global = true)]
+    pub no_spinner: bool,
+
+    /// Loading spinner style.
+    #[arg(long, global = true, value_enum, default_value_t = SpinnerStyle::Unicode)]
+    pub spinner_style: SpinnerStyle,
 
     /// Display language for table, markdown, and TUI output.
     #[arg(long, global = true, value_enum, default_value_t = Lang::EnUs)]

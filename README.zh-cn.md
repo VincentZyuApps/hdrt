@@ -16,11 +16,6 @@
 - `hd`: Hardware Device
 - `rt`: Rust Ratatui
 
-完整解释：
-
-- `hdrt`: Hardware Device Rust Ratatui
-- `hard ratatui`: 面向硬件信息查看的 Ratatui 终端工具
-
 快速记忆：可以把 `hdrt` 记成 `"hard rata"`，这样更容易想起这个简写指令。
 
 ## 📦 安装
@@ -51,7 +46,7 @@ hdrt doctor
 安装指定版本：
 
 ```bash
-HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
+HDRT_VERSION=v0.1.7-alpha.10 bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
 ```
 
 ### Windows (Scoop)
@@ -84,6 +79,8 @@ hdrt doctor
 hdrt doctor --bench
 hdrt --backend native
 hdrt --backend shell disk
+hdrt --no-spinner all
+hdrt --spinner-style ascii doctor --bench
 hdrt tui
 ```
 
@@ -121,16 +118,39 @@ hdrt doctor --bench
 - Linux 硬盘健康状态由 `auto` / `shell` 在可用时通过 `smartctl` 补齐。`native` 会暂时保持未知，后续再做原生 SMART/NVMe 探测。
 - Android / Termux 和 macOS 接受 `--backend` 参数，但后端拆分还没有 Windows/Linux 完整。
 
+## 🌀 Spinner
+
+当 stderr 是交互式终端时，`hdrt` 默认显示加载 spinner。spinner 写入 stderr，所以 JSON 和 Markdown 的 stdout 仍然保持干净。
+
+```bash
+hdrt --no-spinner all
+hdrt --spinner-style unicode all
+hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style dots disk
+```
+
+Spinner 样式：
+
+- `unicode` 是默认值，使用 Braille 动画帧。
+- `ascii` 使用 `/ | \ -`。
+- `dots` 使用点状脉冲。
+
 ## 🧾 输出格式
 
 ```bash
 hdrt disk --format table
 hdrt disk --format wide
+hdrt disk --format compact
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt all --lang zh-cn
 hdrt disk --detail smart
 ```
+
+表格样式：
+
+- `table` 和 `wide` 目前使用相同的圆角表格布局。
+- `compact` 使用 modern 边框表格样式；它是视觉样式，不是删列压缩视图。
 
 显示语言：
 

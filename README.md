@@ -16,11 +16,6 @@ Name meaning:
 - `hd`: Hardware Device
 - `rt`: Rust Ratatui
 
-Full meaning:
-
-- `hdrt`: Hardware Device Rust Ratatui
-- `hard ratatui`: a Ratatui-based terminal tool for reading hardware details
-
 Quick memory hint: you can remember `hdrt` as `"hard rata"`, which makes the short command easier to recall.
 
 ## 📦 Installation
@@ -51,7 +46,7 @@ hdrt doctor
 Install a specific version:
 
 ```bash
-HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
+HDRT_VERSION=v0.1.7-alpha.10 bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
 ```
 
 ### Windows (Scoop)
@@ -84,6 +79,8 @@ hdrt doctor
 hdrt doctor --bench
 hdrt --backend native
 hdrt --backend shell disk
+hdrt --no-spinner all
+hdrt --spinner-style ascii doctor --bench
 hdrt tui
 ```
 
@@ -121,16 +118,39 @@ Platform notes:
 - Linux disk health is filled by `auto` / `shell` through `smartctl` when available. `native` keeps health unknown until native SMART/NVMe probing is implemented.
 - Android / Termux and macOS accept `--backend`, but their backend split is still narrower than Windows/Linux.
 
+## 🌀 Spinner
+
+`hdrt` shows an interactive loading spinner by default when stderr is a terminal. The spinner writes to stderr, so JSON and Markdown stdout stay clean.
+
+```bash
+hdrt --no-spinner all
+hdrt --spinner-style unicode all
+hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style dots disk
+```
+
+Spinner styles:
+
+- `unicode` is the default and uses Braille frames.
+- `ascii` uses `/ | \ -`.
+- `dots` uses a dotted pulse.
+
 ## 🧾 Output Formats
 
 ```bash
 hdrt disk --format table
 hdrt disk --format wide
+hdrt disk --format compact
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt all --lang zh-cn
 hdrt disk --detail smart
 ```
+
+Table styles:
+
+- `table` and `wide` currently use the same rounded table layout.
+- `compact` uses the modern bordered table style; it is a visual style, not a reduced-column view.
 
 Display languages:
 
