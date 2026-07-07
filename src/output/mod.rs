@@ -14,12 +14,13 @@ pub fn render_report(
     section: Section,
     format: OutputFormat,
     lang: Lang,
+    emoji: bool,
 ) -> Result<String> {
     match format {
-        OutputFormat::Json => json::render_report(report, section),
-        OutputFormat::Markdown => Ok(markdown::render_report(report, section, lang)),
+        OutputFormat::Json => json::render_report(report, section, lang, emoji),
+        OutputFormat::Markdown => Ok(markdown::render_report(report, section, lang, emoji)),
         OutputFormat::Table | OutputFormat::Wide | OutputFormat::Compact => {
-            Ok(table::render_report(report, section, format, lang))
+            Ok(table::render_report(report, section, format, lang, emoji))
         }
     }
 }
@@ -28,12 +29,13 @@ pub fn render_capabilities(
     report: &CapabilityReport,
     format: OutputFormat,
     lang: Lang,
+    emoji: bool,
 ) -> Result<String> {
     match format {
-        OutputFormat::Json => Ok(serde_json::to_string_pretty(report)?),
-        OutputFormat::Markdown => Ok(markdown::render_capabilities(report, lang)),
+        OutputFormat::Json => json::render_capabilities(report, lang, emoji),
+        OutputFormat::Markdown => Ok(markdown::render_capabilities(report, lang, emoji)),
         OutputFormat::Table | OutputFormat::Wide | OutputFormat::Compact => {
-            Ok(table::render_capabilities(report, lang))
+            Ok(table::render_capabilities(report, lang, emoji))
         }
     }
 }
@@ -42,12 +44,13 @@ pub fn render_benchmarks(
     report: &BenchmarkReport,
     format: OutputFormat,
     lang: Lang,
+    emoji: bool,
 ) -> Result<String> {
     match format {
-        OutputFormat::Json => Ok(serde_json::to_string_pretty(report)?),
-        OutputFormat::Markdown => Ok(markdown::render_benchmarks(report, lang)),
+        OutputFormat::Json => json::render_benchmarks(report, lang, emoji),
+        OutputFormat::Markdown => Ok(markdown::render_benchmarks(report, lang, emoji)),
         OutputFormat::Table | OutputFormat::Wide | OutputFormat::Compact => {
-            Ok(table::render_benchmarks(report, lang))
+            Ok(table::render_benchmarks(report, lang, emoji))
         }
     }
 }

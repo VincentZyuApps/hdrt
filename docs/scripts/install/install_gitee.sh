@@ -3,7 +3,7 @@
 # 用法:
 #   curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh | bash
 # 安装指定版本:
-#   HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
+#   HDRT_VERSION=vX.Y.Z bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
 set -e
 
 OWNER="vincent-zyu"
@@ -64,7 +64,7 @@ else
   VERSION=$(curl -fsSL "$API_URL" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
   if [ -z "$VERSION" ]; then
     echo "❌ 从 Gitee API 获取最新版本失败。"
-    echo "   可以手动指定版本，例如: HDRT_VERSION=v0.1.5-alpha.8"
+    echo "   可以手动指定版本，例如: HDRT_VERSION=vX.Y.Z"
     exit 1
   fi
   echo "📦 最新版本: $VERSION"

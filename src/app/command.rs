@@ -20,11 +20,9 @@ pub enum Command {
     #[command(visible_alias = "a")]
     All,
     /// Show dependency, privilege, and backend status.
-    Doctor {
-        /// Benchmark available collection backends.
-        #[arg(long)]
-        bench: bool,
-    },
+    Doctor,
+    /// Benchmark available collection backends.
+    Bench,
     /// Open the Ratatui interface.
     Tui {
         #[arg(long, value_enum, default_value_t = TuiTab::Overview)]

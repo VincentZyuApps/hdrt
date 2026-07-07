@@ -16,6 +16,7 @@ pub fn t(key: &str) -> &'static str {
         "section.motherboard" => "主板",
         "section.health" => "健康",
         "section.overview" => "概览",
+        "section.all" => "全部",
         "disk.device" => "设备",
         "disk.model" => "型号",
         "disk.brand" => "品牌",

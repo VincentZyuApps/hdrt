@@ -7,6 +7,7 @@ use anyhow::Result;
 use clap::Parser;
 
 use crate::collector::{self, CollectOptions};
+use crate::emoji;
 use crate::hardware::Section;
 use crate::i18n::t;
 use crate::{output, ui};
@@ -29,27 +30,31 @@ fn execute(cli: Cli) -> Result<()> {
         Command::Cpu => print_section(&cli, Section::Cpu),
         Command::Motherboard => print_section(&cli, Section::Motherboard),
         Command::All => print_section(&cli, Section::All),
-        Command::Doctor { bench } => {
-            if bench {
-                let spinner = start_spinner(&cli, "spinner.bench");
-                let benchmarks = collector::benchmark_report(CollectOptions {
-                    detail: cli.detail,
-                    backend: cli.backend,
-                });
-                let rendered = output::render_benchmarks(&benchmarks, cli.format, cli.lang)?;
-                spinner.finish();
-                println!("{rendered}");
-            } else {
-                let spinner = start_spinner(&cli, "spinner.doctor");
-                let capabilities = collector::capability_report();
-                let rendered = output::render_capabilities(&capabilities, cli.format, cli.lang)?;
-                spinner.finish();
-                println!("{rendered}");
-            }
-            Ok(())
-        }
-        Command::Tui { tab } => ui::run(tab, cli.lang),
+        Command::Doctor => print_doctor(&cli),
+        Command::Bench => print_benchmarks(&cli),
+        Command::Tui { tab } => ui::run(tab, cli.lang, cli.emoji),
     }
+}
+
+fn print_doctor(cli: &Cli) -> Result<()> {
+    let spinner = start_spinner(cli, "spinner.doctor");
+    let capabilities = collector::capability_report();
+    let rendered = output::render_capabilities(&capabilities, cli.format, cli.lang, cli.emoji)?;
+    spinner.finish();
+    println!("{rendered}");
+    Ok(())
+}
+
+fn print_benchmarks(cli: &Cli) -> Result<()> {
+    let spinner = start_spinner(cli, "spinner.bench");
+    let benchmarks = collector::benchmark_report(CollectOptions {
+        detail: cli.detail,
+        backend: cli.backend,
+    });
+    let rendered = output::render_benchmarks(&benchmarks, cli.format, cli.lang, cli.emoji)?;
+    spinner.finish();
+    println!("{rendered}");
+    Ok(())
 }
 
 fn print_section(cli: &Cli, section: Section) -> Result<()> {
@@ -58,12 +63,13 @@ fn print_section(cli: &Cli, section: Section) -> Result<()> {
         detail: cli.detail,
         backend: cli.backend,
     });
-    let rendered = output::render_report(&report, section, cli.format, cli.lang)?;
+    let rendered = output::render_report(&report, section, cli.format, cli.lang, cli.emoji)?;
     spinner.finish();
     println!("{rendered}");
     Ok(())
 }
 
 fn start_spinner(cli: &Cli, message_key: &str) -> Spinner {
-    Spinner::start(!cli.no_spinner, cli.spinner_style, t(cli.lang, message_key))
+    let message = emoji::decorate(cli.emoji, message_key, t(cli.lang, message_key));
+    Spinner::start(!cli.no_spinner, cli.spinner_style, message)
 }

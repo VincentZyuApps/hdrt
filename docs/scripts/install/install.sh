@@ -3,7 +3,7 @@
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh | bash
 # Install a specific version:
-#   HDRT_VERSION=v0.1.5-alpha.8 bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
+#   HDRT_VERSION=vX.Y.Z bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
 set -e
 
 REPO="VincentZyuApps/hdrt"
@@ -63,7 +63,7 @@ else
   VERSION=$(curl -fsSL "$API_URL" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
   if [ -z "$VERSION" ]; then
     echo "❌ Failed to fetch latest version from GitHub API."
-    echo "   Set HDRT_VERSION manually, for example: HDRT_VERSION=v0.1.5-alpha.8"
+    echo "   Set HDRT_VERSION manually, for example: HDRT_VERSION=vX.Y.Z"
     exit 1
   fi
   echo "📦 Latest version: $VERSION"

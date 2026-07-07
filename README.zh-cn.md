@@ -1,6 +1,8 @@
 > **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+
 <br>
-> **[📖Build Doc](.github/workflows/build.zh-cn.md)**
+
+> **[📖Build Doc](.github/workflows/build.md)**
 
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
@@ -46,7 +48,7 @@ hdrt doctor
 安装指定版本：
 
 ```bash
-HDRT_VERSION=v0.1.7-alpha.10 bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
+HDRT_VERSION=vX.Y.Z bash -c "$(curl -fsSL https://gitee.com/vincent-zyu/hdrt/raw/main/docs/scripts/install/install_gitee.sh)"
 ```
 
 ### Windows (Scoop)
@@ -76,11 +78,13 @@ hdrt cpu
 hdrt motherboard
 hdrt all
 hdrt doctor
-hdrt doctor --bench
+hdrt bench
 hdrt --backend native
 hdrt --backend shell disk
+hdrt -e all
+hdrt -e tui
 hdrt --no-spinner all
-hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style ascii bench
 hdrt tui
 ```
 
@@ -108,7 +112,7 @@ hdrt tui
 hdrt --backend auto all
 hdrt --backend native disk
 hdrt --backend shell memory
-hdrt doctor --bench
+hdrt bench
 ```
 
 平台说明：
@@ -118,6 +122,19 @@ hdrt doctor --bench
 - Linux 硬盘健康状态由 `auto` / `shell` 在可用时通过 `smartctl` 补齐。`native` 会暂时保持未知，后续再做原生 SMART/NVMe 探测。
 - Android / Termux 和 macOS 接受 `--backend` 参数，但后端拆分还没有 Windows/Linux 完整。
 
+## ✨ Emoji 模式
+
+Emoji 装饰默认关闭。使用 `-e` 或 `--emoji` 可以装饰 CLI 输出、Markdown、JSON 展示标签、spinner 文案和 TUI 标签。
+
+```bash
+hdrt -e all
+hdrt --emoji disk --format markdown
+hdrt --emoji disk --format json
+hdrt --emoji tui
+```
+
+`--emoji --format json` 会把原始数据保留在 `data` 中，并额外增加带 emoji 的 `title` 和 `labels` 展示字段。
+
 ## 🌀 Spinner
 
 当 stderr 是交互式终端时，`hdrt` 默认显示加载 spinner。spinner 写入 stderr，所以 JSON 和 Markdown 的 stdout 仍然保持干净。
@@ -125,7 +142,7 @@ hdrt doctor --bench
 ```bash
 hdrt --no-spinner all
 hdrt --spinner-style unicode all
-hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style ascii bench
 hdrt --spinner-style dots disk
 ```
 
@@ -181,7 +198,7 @@ hdrt disk --detail smart
 
 ```bash
 hdrt doctor
-hdrt doctor --bench
+hdrt bench
 hdrt --backend native disk
 hdrt --backend shell disk --detail smart
 sudo hdrt disk --detail smart

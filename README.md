@@ -1,5 +1,7 @@
 > **[📖English](README.md) | [📖简体中文](README.zh-cn.md)**
+
 <br>
+
 > **[📖Build Doc](.github/workflows/build.md)**
 
 ![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
@@ -46,7 +48,7 @@ hdrt doctor
 Install a specific version:
 
 ```bash
-HDRT_VERSION=v0.1.7-alpha.10 bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
+HDRT_VERSION=vX.Y.Z bash -c "$(curl -fsSL https://raw.githubusercontent.com/VincentZyuApps/hdrt/main/docs/scripts/install/install.sh)"
 ```
 
 ### Windows (Scoop)
@@ -76,11 +78,13 @@ hdrt cpu
 hdrt motherboard
 hdrt all
 hdrt doctor
-hdrt doctor --bench
+hdrt bench
 hdrt --backend native
 hdrt --backend shell disk
+hdrt -e all
+hdrt -e tui
 hdrt --no-spinner all
-hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style ascii bench
 hdrt tui
 ```
 
@@ -108,7 +112,7 @@ Examples:
 hdrt --backend auto all
 hdrt --backend native disk
 hdrt --backend shell memory
-hdrt doctor --bench
+hdrt bench
 ```
 
 Platform notes:
@@ -118,6 +122,19 @@ Platform notes:
 - Linux disk health is filled by `auto` / `shell` through `smartctl` when available. `native` keeps health unknown until native SMART/NVMe probing is implemented.
 - Android / Termux and macOS accept `--backend`, but their backend split is still narrower than Windows/Linux.
 
+## ✨ Emoji Mode
+
+Emoji decorations are disabled by default. Use `-e` or `--emoji` to decorate CLI output, Markdown, JSON display labels, spinner messages, and TUI labels.
+
+```bash
+hdrt -e all
+hdrt --emoji disk --format markdown
+hdrt --emoji disk --format json
+hdrt --emoji tui
+```
+
+`--emoji --format json` keeps the raw data under `data` and adds decorated `title` and `labels` fields for display.
+
 ## 🌀 Spinner
 
 `hdrt` shows an interactive loading spinner by default when stderr is a terminal. The spinner writes to stderr, so JSON and Markdown stdout stay clean.
@@ -125,7 +142,7 @@ Platform notes:
 ```bash
 hdrt --no-spinner all
 hdrt --spinner-style unicode all
-hdrt --spinner-style ascii doctor --bench
+hdrt --spinner-style ascii bench
 hdrt --spinner-style dots disk
 ```
 
@@ -181,7 +198,7 @@ Recommended checks:
 
 ```bash
 hdrt doctor
-hdrt doctor --bench
+hdrt bench
 hdrt --backend native disk
 hdrt --backend shell disk --detail smart
 sudo hdrt disk --detail smart

@@ -1,45 +1,57 @@
 use crate::collector::BenchmarkReport;
+use crate::emoji;
 use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 use crate::i18n::{display_optional, display_value, t, Lang};
 
-pub fn render_report(report: &HardwareReport, section: Section, lang: Lang) -> String {
+pub fn render_report(report: &HardwareReport, section: Section, lang: Lang, emoji: bool) -> String {
     let mut output = Vec::new();
 
     if matches!(section, Section::Disk | Section::All) {
-        output.push(render_disks(report, lang));
+        output.push(render_disks(report, lang, emoji));
     }
     if matches!(section, Section::Memory | Section::All) {
-        output.push(render_memory(report, lang));
+        output.push(render_memory(report, lang, emoji));
     }
     if matches!(section, Section::Cpu | Section::All) {
-        output.push(render_cpu(report, lang));
+        output.push(render_cpu(report, lang, emoji));
     }
     if matches!(section, Section::Motherboard | Section::All) {
-        output.push(render_motherboard(report, lang));
+        output.push(render_motherboard(report, lang, emoji));
     }
 
     let warnings = collect_warnings(report, section);
     if !warnings.is_empty() {
-        output.push(render_warnings(&warnings, lang));
+        output.push(render_warnings(&warnings, lang, emoji));
     }
 
     output.join("\n\n")
 }
 
-pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
+pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        "# hdrt doctor".to_string(),
+        format!(
+            "# {}",
+            emoji::decorate(emoji, "doctor.title", "hdrt doctor")
+        ),
         String::new(),
-        format!("- {}: `{}`", t(lang, "platform"), report.platform),
-        format!("- {}: `{}`", t(lang, "arch"), report.arch),
-        format!("- {}: `{}`", t(lang, "elevated"), yes_no(report.elevated, lang)),
+        format!(
+            "- {}: `{}`",
+            label(lang, "platform", emoji),
+            report.platform
+        ),
+        format!("- {}: `{}`", label(lang, "arch", emoji), report.arch),
+        format!(
+            "- {}: `{}`",
+            label(lang, "elevated", emoji),
+            yes_no(report.elevated, lang)
+        ),
         String::new(),
         format!(
             "| {} | {} | {} | {} |",
-            t(lang, "doctor.name"),
-            t(lang, "doctor.available"),
-            t(lang, "doctor.path"),
-            t(lang, "doctor.purpose")
+            label(lang, "doctor.name", emoji),
+            label(lang, "doctor.available", emoji),
+            label(lang, "doctor.path", emoji),
+            label(lang, "doctor.purpose", emoji)
         ),
         "| --- | --- | --- | --- |".to_string(),
     ];
@@ -59,7 +71,7 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
 
     if !report.notes.is_empty() {
         lines.push(String::new());
-        lines.push(format!("## {}", t(lang, "notes")));
+        lines.push(format!("## {}", label(lang, "notes", emoji)));
         for note in &report.notes {
             lines.push(format!("- {note}"));
         }
@@ -68,22 +80,29 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
     lines.join("\n")
 }
 
-pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
+pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        "# hdrt backend benchmark".to_string(),
+        format!(
+            "# {}",
+            emoji::decorate(emoji, "bench.title", "hdrt backend benchmark")
+        ),
         String::new(),
-        format!("- {}: `{}`", t(lang, "platform"), report.platform),
-        format!("- {}: `{}`", t(lang, "arch"), report.arch),
+        format!(
+            "- {}: `{}`",
+            label(lang, "platform", emoji),
+            report.platform
+        ),
+        format!("- {}: `{}`", label(lang, "arch", emoji), report.arch),
         String::new(),
         format!(
             "| {} | {} | {} | {} | {} | {} | {} |",
-            t(lang, "bench.backend"),
-            t(lang, "bench.ok"),
-            t(lang, "bench.elapsed"),
-            t(lang, "bench.disks"),
-            t(lang, "bench.memory"),
-            t(lang, "bench.warnings"),
-            t(lang, "bench.note")
+            label(lang, "bench.backend", emoji),
+            label(lang, "bench.ok", emoji),
+            label(lang, "bench.elapsed", emoji),
+            label(lang, "bench.disks", emoji),
+            label(lang, "bench.memory", emoji),
+            label(lang, "bench.warnings", emoji),
+            label(lang, "bench.note", emoji)
         ),
         "| --- | --- | --- | --- | --- | --- | --- |".to_string(),
     ];
@@ -104,21 +123,21 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
     lines.join("\n")
 }
 
-fn render_disks(report: &HardwareReport, lang: Lang) -> String {
+fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        format!("## {}", t(lang, "section.disk")),
+        format!("## {}", label(lang, "section.disk", emoji)),
         String::new(),
         format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} | {} |",
-            t(lang, "disk.device"),
-            t(lang, "disk.model"),
-            t(lang, "disk.brand"),
-            t(lang, "disk.serial"),
-            t(lang, "disk.size"),
-            t(lang, "disk.kind"),
-            t(lang, "disk.bus"),
-            t(lang, "disk.firmware"),
-            t(lang, "disk.health")
+            label(lang, "disk.device", emoji),
+            label(lang, "disk.model", emoji),
+            label(lang, "disk.brand", emoji),
+            label(lang, "disk.serial", emoji),
+            label(lang, "disk.size", emoji),
+            label(lang, "disk.kind", emoji),
+            label(lang, "disk.bus", emoji),
+            label(lang, "disk.firmware", emoji),
+            label(lang, "disk.health", emoji)
         ),
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
     ];
@@ -141,18 +160,18 @@ fn render_disks(report: &HardwareReport, lang: Lang) -> String {
     lines.join("\n")
 }
 
-fn render_memory(report: &HardwareReport, lang: Lang) -> String {
+fn render_memory(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        format!("## {}", t(lang, "section.memory")),
+        format!("## {}", label(lang, "section.memory", emoji)),
         String::new(),
         format!(
             "| {} | {} | {} | {} | {} | {} |",
-            t(lang, "memory.slot"),
-            t(lang, "memory.size"),
-            t(lang, "memory.speed"),
-            t(lang, "memory.manufacturer"),
-            t(lang, "memory.part_number"),
-            t(lang, "memory.serial")
+            label(lang, "memory.slot", emoji),
+            label(lang, "memory.size", emoji),
+            label(lang, "memory.speed", emoji),
+            label(lang, "memory.manufacturer", emoji),
+            label(lang, "memory.part_number", emoji),
+            label(lang, "memory.serial", emoji)
         ),
         "| --- | --- | --- | --- | --- | --- |".to_string(),
     ];
@@ -172,75 +191,87 @@ fn render_memory(report: &HardwareReport, lang: Lang) -> String {
     lines.join("\n")
 }
 
-fn render_cpu(report: &HardwareReport, lang: Lang) -> String {
+fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let Some(cpu) = &report.cpu else {
-        return format!("## {}\n\n{}", t(lang, "section.cpu"), t(lang, "no_data"));
+        return format!(
+            "## {}\n\n{}",
+            label(lang, "section.cpu", emoji),
+            t(lang, "no_data")
+        );
     };
 
     [
-        format!("## {}", t(lang, "section.cpu")),
+        format!("## {}", label(lang, "section.cpu", emoji)),
         String::new(),
-        format!("- {}: `{}`", t(lang, "cpu.model"), value(&cpu.model, lang)),
-        format!("- {}: `{}`", t(lang, "cpu.vendor"), value(&cpu.vendor, lang)),
         format!(
             "- {}: `{}`",
-            t(lang, "cpu.physical_cores"),
+            label(lang, "cpu.model", emoji),
+            value(&cpu.model, lang)
+        ),
+        format!(
+            "- {}: `{}`",
+            label(lang, "cpu.vendor", emoji),
+            value(&cpu.vendor, lang)
+        ),
+        format!(
+            "- {}: `{}`",
+            label(lang, "cpu.physical_cores", emoji),
             display_optional(lang, cpu.physical_cores)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "cpu.logical_threads"),
+            label(lang, "cpu.logical_threads", emoji),
             display_optional(lang, cpu.logical_threads)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "cpu.frequency"),
+            label(lang, "cpu.frequency", emoji),
             value(&cpu.frequency, lang)
         ),
     ]
     .join("\n")
 }
 
-fn render_motherboard(report: &HardwareReport, lang: Lang) -> String {
+fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let Some(board) = &report.motherboard else {
         return format!(
             "## {}\n\n{}",
-            t(lang, "section.motherboard"),
+            label(lang, "section.motherboard", emoji),
             t(lang, "no_data")
         );
     };
 
     [
-        format!("## {}", t(lang, "section.motherboard")),
+        format!("## {}", label(lang, "section.motherboard", emoji)),
         String::new(),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.manufacturer"),
+            label(lang, "motherboard.manufacturer", emoji),
             value(&board.manufacturer, lang)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.product"),
+            label(lang, "motherboard.product", emoji),
             value(&board.product, lang)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.version"),
+            label(lang, "motherboard.version", emoji),
             value(&board.version, lang)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.serial"),
+            label(lang, "motherboard.serial", emoji),
             value(&board.serial, lang)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.bios_vendor"),
+            label(lang, "motherboard.bios_vendor", emoji),
             value(&board.bios_vendor, lang)
         ),
         format!(
             "- {}: `{}`",
-            t(lang, "motherboard.bios_version"),
+            label(lang, "motherboard.bios_version", emoji),
             value(&board.bios_version, lang)
         ),
     ]
@@ -255,17 +286,24 @@ fn yes_no(value: bool, lang: Lang) -> String {
     t(lang, if value { "yes" } else { "no" }).to_string()
 }
 
-fn render_warnings(warnings: &[HdrtWarning], lang: Lang) -> String {
-    let mut lines = vec![format!("## {}", t(lang, "warnings")), String::new()];
+fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String {
+    let mut lines = vec![
+        format!("## {}", label(lang, "warnings", emoji)),
+        String::new(),
+    ];
 
     for warning in warnings {
         lines.push(format!("- `{}`: {}", warning.code, warning.message));
         if let Some(hint) = &warning.hint {
-            lines.push(format!("  - {}: {hint}", t(lang, "hint")));
+            lines.push(format!("  - {}: {hint}", label(lang, "hint", emoji)));
         }
     }
 
     lines.join("\n")
+}
+
+fn label(lang: Lang, key: &str, enabled: bool) -> String {
+    emoji::decorate(enabled, key, t(lang, key))
 }
 
 fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {

@@ -16,6 +16,7 @@ pub fn t(key: &str) -> &'static str {
         "section.motherboard" => "Motherboard",
         "section.health" => "Health",
         "section.overview" => "Overview",
+        "section.all" => "All",
         "disk.device" => "device",
         "disk.model" => "model",
         "disk.brand" => "brand",

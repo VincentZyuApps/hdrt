@@ -3,6 +3,7 @@ use tabled::settings::Style;
 
 use crate::app::options::OutputFormat;
 use crate::collector::BenchmarkReport;
+use crate::emoji;
 use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 use crate::i18n::{display_optional, display_value, t, Lang};
 
@@ -11,31 +12,32 @@ pub fn render_report(
     section: Section,
     format: OutputFormat,
     lang: Lang,
+    emoji: bool,
 ) -> String {
     let mut output = Vec::new();
 
     if matches!(section, Section::Disk | Section::All) {
-        output.push(render_disks(report, format, lang));
+        output.push(render_disks(report, format, lang, emoji));
     }
     if matches!(section, Section::Memory | Section::All) {
-        output.push(render_memory(report, format, lang));
+        output.push(render_memory(report, format, lang, emoji));
     }
     if matches!(section, Section::Cpu | Section::All) {
-        output.push(render_cpu(report, lang));
+        output.push(render_cpu(report, lang, emoji));
     }
     if matches!(section, Section::Motherboard | Section::All) {
-        output.push(render_motherboard(report, lang));
+        output.push(render_motherboard(report, lang, emoji));
     }
 
     let warnings = collect_warnings(report, section);
     if !warnings.is_empty() {
-        output.push(render_warnings(&warnings, lang));
+        output.push(render_warnings(&warnings, lang, emoji));
     }
 
     output.join("\n\n")
 }
 
-pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
+pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .tools
         .iter()
@@ -53,8 +55,17 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
         .collect();
 
     let mut output = vec![
-        format!("{}: {} / {}", t(lang, "platform"), report.platform, report.arch),
-        format!("{}: {}", t(lang, "elevated"), yes_no(report.elevated, lang)),
+        format!(
+            "{}: {} / {}",
+            label(lang, "platform", emoji),
+            report.platform,
+            report.arch
+        ),
+        format!(
+            "{}: {}",
+            label(lang, "elevated", emoji),
+            yes_no(report.elevated, lang)
+        ),
         make_table(
             headers(
                 &[
@@ -64,6 +75,7 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
                     "doctor.purpose",
                 ],
                 lang,
+                emoji,
             ),
             rows,
             OutputFormat::Table,
@@ -71,14 +83,14 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang) -> String {
     ];
 
     if !report.notes.is_empty() {
-        output.push(format!("{}:", t(lang, "notes")));
+        output.push(format!("{}:", label(lang, "notes", emoji)));
         output.extend(report.notes.iter().map(|note| format!("- {note}")));
     }
 
     output.join("\n")
 }
 
-pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
+pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .rows
         .iter()
@@ -96,7 +108,12 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
         .collect();
 
     [
-        format!("{}: {} / {}", t(lang, "platform"), report.platform, report.arch),
+        format!(
+            "{}: {} / {}",
+            label(lang, "platform", emoji),
+            report.platform,
+            report.arch
+        ),
         make_table(
             headers(
                 &[
@@ -109,6 +126,7 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
                     "bench.note",
                 ],
                 lang,
+                emoji,
             ),
             rows,
             OutputFormat::Table,
@@ -117,7 +135,7 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang) -> String {
     .join("\n")
 }
 
-fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang) -> String {
+fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .disks
         .iter()
@@ -151,14 +169,16 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang) -> St
                 "disk.health",
             ],
             lang,
+            emoji,
         ),
         rows,
         format,
         lang,
+        emoji,
     )
 }
 
-fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang) -> String {
+fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .memory
         .iter()
@@ -186,14 +206,16 @@ fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang) -> S
                 "memory.serial",
             ],
             lang,
+            emoji,
         ),
         rows,
         format,
         lang,
+        emoji,
     )
 }
 
-fn render_cpu(report: &HardwareReport, lang: Lang) -> String {
+fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .cpu
         .iter()
@@ -219,14 +241,16 @@ fn render_cpu(report: &HardwareReport, lang: Lang) -> String {
                 "cpu.frequency",
             ],
             lang,
+            emoji,
         ),
         rows,
         OutputFormat::Table,
         lang,
+        emoji,
     )
 }
 
-fn render_motherboard(report: &HardwareReport, lang: Lang) -> String {
+fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let rows: Vec<Vec<String>> = report
         .motherboard
         .iter()
@@ -254,10 +278,12 @@ fn render_motherboard(report: &HardwareReport, lang: Lang) -> String {
                 "motherboard.bios_version",
             ],
             lang,
+            emoji,
         ),
         rows,
         OutputFormat::Table,
         lang,
+        emoji,
     )
 }
 
@@ -267,8 +293,9 @@ fn section_with_table(
     rows: Vec<Vec<String>>,
     format: OutputFormat,
     lang: Lang,
+    emoji: bool,
 ) -> String {
-    let title = t(lang, title_key);
+    let title = label(lang, title_key, emoji);
     if rows.is_empty() {
         return format!("{title}\n{}", t(lang, "no_data"));
     }
@@ -291,8 +318,8 @@ fn make_table(headers: Vec<String>, rows: Vec<Vec<String>>, format: OutputFormat
     table.to_string()
 }
 
-fn headers(keys: &[&str], lang: Lang) -> Vec<String> {
-    keys.iter().map(|key| t(lang, key).to_string()).collect()
+fn headers(keys: &[&str], lang: Lang, emoji: bool) -> Vec<String> {
+    keys.iter().map(|key| label(lang, key, emoji)).collect()
 }
 
 fn value(value: &str, lang: Lang) -> String {
@@ -303,15 +330,19 @@ fn yes_no(value: bool, lang: Lang) -> String {
     t(lang, if value { "yes" } else { "no" }).to_string()
 }
 
-fn render_warnings(warnings: &[HdrtWarning], lang: Lang) -> String {
-    let mut lines = vec![format!("{}:", t(lang, "warnings"))];
+fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String {
+    let mut lines = vec![format!("{}:", label(lang, "warnings", emoji))];
     for warning in warnings {
         lines.push(format!("- [{}] {}", warning.code, warning.message));
         if let Some(hint) = &warning.hint {
-            lines.push(format!("  {}: {hint}", t(lang, "hint")));
+            lines.push(format!("  {}: {hint}", label(lang, "hint", emoji)));
         }
     }
     lines.join("\n")
+}
+
+fn label(lang: Lang, key: &str, enabled: bool) -> String {
+    emoji::decorate(enabled, key, t(lang, key))
 }
 
 fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {
