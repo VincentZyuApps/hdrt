@@ -512,28 +512,48 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
 
 fn push_tui_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
     match lang {
-        Lang::EnUs => push_option(
-            lines,
-            emoji,
-            "🗂️",
-            "--tab <TAB>",
-            "Initial TUI tab.",
-            &[
-                "[default: overview]",
-                "[possible values: overview, disk, memory, cpu, motherboard, health, warnings]",
-            ],
-        ),
-        Lang::ZhCn => push_option(
-            lines,
-            emoji,
-            "🗂️",
-            "--tab <TAB>",
-            "TUI 初始标签页。",
-            &[
-                "[默认: overview]",
-                "[可选值: overview, disk, memory, cpu, motherboard, health, warnings]",
-            ],
-        ),
+        Lang::EnUs => {
+            push_option(
+                lines,
+                emoji,
+                "🗂️",
+                "--tab <TAB>",
+                "Initial TUI tab.",
+                &[
+                    "[default: overview]",
+                    "[possible values: overview, disk, memory, cpu, motherboard, health, warnings]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
+                "⏱️",
+                "-t, --interval <INTERVAL>",
+                "TUI refresh interval in milliseconds.",
+                &["[default: 2000]", "[minimum: 250]"],
+            );
+        }
+        Lang::ZhCn => {
+            push_option(
+                lines,
+                emoji,
+                "🗂️",
+                "--tab <TAB>",
+                "TUI 初始标签页。",
+                &[
+                    "[默认: overview]",
+                    "[可选值: overview, disk, memory, cpu, motherboard, health, warnings]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
+                "⏱️",
+                "-t, --interval <INTERVAL>",
+                "TUI 刷新间隔，单位毫秒。",
+                &["[默认: 2000]", "[最小值: 250]"],
+            );
+        }
     }
 }
 
@@ -576,7 +596,7 @@ fn icon_text(emoji: bool, icon: &str, text: &str) -> String {
 fn option_takes_value(token: &str) -> bool {
     matches!(
         token,
-        "--format" | "--detail" | "--backend" | "--spinner-style" | "--tab"
+        "--format" | "--detail" | "--backend" | "--spinner-style" | "--tab" | "--interval"
     )
 }
 

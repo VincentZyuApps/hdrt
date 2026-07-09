@@ -86,6 +86,7 @@ hdrt -e tui
 hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
+hdrt tui -t 2000
 ```
 
 别名：
@@ -151,6 +152,27 @@ Spinner 样式：
 - `unicode` 是默认值，使用 Braille 动画帧。
 - `ascii` 使用 `/ | \ -`。
 - `dots` 使用点状脉冲。
+
+## 🖥️ TUI
+
+`hdrt tui` 会打开实时 Ratatui 界面，把静态硬件清单和实时 CPU、内存、磁盘遥测放在一起展示。
+
+```bash
+hdrt tui
+hdrt tui --tab cpu
+hdrt tui --tab disk -t 1000
+hdrt tui --interval 2000
+```
+
+TUI 快捷键：
+
+- `Tab` / `Left` / `Right` / `WASD`：切换标签页。
+- `z` / `c`：全局切换折线图、散点图、柱状图、火花图和仪表条。
+- `j` / `k`：在磁盘页选择磁盘。
+- `r`：刷新静态硬件清单并重置实时采样。
+- `q` / `Esc`：退出。
+
+默认刷新间隔是 `2000` ms。低于 `250` ms 的值会被钳制到 `250` ms。
 
 ## 🧾 输出格式
 

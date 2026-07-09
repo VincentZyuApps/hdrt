@@ -37,7 +37,17 @@ fn execute(cli: Cli) -> Result<()> {
         Command::All => print_section(&cli, Section::All),
         Command::Doctor => print_doctor(&cli),
         Command::Bench => print_benchmarks(&cli),
-        Command::Tui { tab } => ui::run(tab, cli.lang, cli.emoji),
+        Command::Tui { tab, interval } => ui::run(
+            tab,
+            cli.lang,
+            cli.emoji,
+            CollectOptions {
+                detail: cli.detail,
+                backend: cli.backend,
+                debug: cli.debug,
+            },
+            interval,
+        ),
     }
 }
 

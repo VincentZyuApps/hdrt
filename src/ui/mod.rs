@@ -1,96 +1,57 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
+use crossterm::event::{self, Event, KeyEventKind};
 
 use crate::app::options::TuiTab;
-use crate::emoji;
-use crate::i18n::{t, Lang};
+use crate::collector::CollectOptions;
+use crate::i18n::Lang;
 
-pub fn run(initial_tab: TuiTab, lang: Lang, emoji: bool) -> Result<()> {
+mod panels;
+mod render;
+mod screens;
+mod state;
+mod utils;
+mod widgets;
+
+use self::state::TuiState;
+
+pub fn run(
+    initial_tab: TuiTab,
+    lang: Lang,
+    emoji: bool,
+    options: CollectOptions,
+    interval_ms: u64,
+) -> Result<()> {
+    let mut state = TuiState::new(initial_tab, lang, emoji, options, interval_ms);
     let mut terminal = ratatui::init();
-    let result = run_inner(&mut terminal, initial_tab, lang, emoji);
+    let result = run_inner(&mut terminal, &mut state);
     ratatui::restore();
     result
 }
 
-fn run_inner(
-    terminal: &mut ratatui::DefaultTerminal,
-    initial_tab: TuiTab,
-    lang: Lang,
-    emoji: bool,
-) -> Result<()> {
-    let mut tab = tab_index(initial_tab);
-    let titles = [
-        label(lang, "section.overview", emoji),
-        label(lang, "section.disk", emoji),
-        label(lang, "section.memory", emoji),
-        label(lang, "section.cpu", emoji),
-        label(lang, "section.motherboard", emoji),
-        label(lang, "section.health", emoji),
-        label(lang, "warnings", emoji),
-    ];
+fn run_inner(terminal: &mut ratatui::DefaultTerminal, state: &mut TuiState) -> Result<()> {
+    let mut next_sample = Instant::now() + state.interval;
 
     loop {
-        terminal.draw(|frame| {
-            let area = frame.area();
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(3), Constraint::Min(0)])
-                .split(area);
+        let now = Instant::now();
+        if now >= next_sample {
+            state.sample();
+            next_sample = now + state.interval;
+        }
 
-            let tabs =
-                Tabs::new(
-                    titles
-                        .iter()
-                        .map(|title| Line::from(Span::raw(title.clone()))),
-                )
-                .select(tab)
-                .block(Block::bordered().title(emoji::decorate(emoji, "app.title", "hdrt")));
-            frame.render_widget(tabs, chunks[0]);
+        terminal.draw(|frame| render::draw(frame, state))?;
 
-            let body = Paragraph::new(vec![
-                Line::from(label(lang, "tui.subtitle", emoji)),
-                Line::from(label(lang, "tui.memory_hint", emoji)),
-                Line::from(""),
-                Line::from(label(lang, "tui.placeholder", emoji)),
-                Line::from(label(lang, "tui.help", emoji)),
-            ])
-            .block(Block::bordered().title(titles[tab].clone()))
-            .wrap(Wrap { trim: true });
-            frame.render_widget(body, chunks[1]);
-        })?;
+        let timeout = next_sample
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_millis(200));
 
-        if event::poll(Duration::from_millis(200))? {
+        if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
-                        KeyCode::Tab | KeyCode::Right => tab = (tab + 1) % titles.len(),
-                        KeyCode::Left => tab = (tab + titles.len() - 1) % titles.len(),
-                        _ => {}
-                    }
+                if key.kind == KeyEventKind::Press && state.handle_key(key.code) {
+                    return Ok(());
                 }
             }
         }
     }
-}
-
-fn tab_index(tab: TuiTab) -> usize {
-    match tab {
-        TuiTab::Overview => 0,
-        TuiTab::Disk => 1,
-        TuiTab::Memory => 2,
-        TuiTab::Cpu => 3,
-        TuiTab::Motherboard => 4,
-        TuiTab::Health => 5,
-        TuiTab::Warnings => 6,
-    }
-}
-
-fn label(lang: Lang, key: &str, enabled: bool) -> String {
-    emoji::decorate(enabled, key, t(lang, key))
 }

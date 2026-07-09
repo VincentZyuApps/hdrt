@@ -1,6 +1,6 @@
 [package]
 name = "hdrt"
-version = "0.1.12-alpha.16"
+version = "0.1.13-alpha.17"
 edition = "2021"
 description = "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI"
 license = "MIT"
@@ -20,6 +20,7 @@ crossterm = "0.28"
 ratatui = "0.29"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sysinfo = "0.32"
 tabled = "0.16"
 thiserror = "2"
 which = "7"
@@ -28,7 +29,6 @@ which = "7"
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-sysinfo = "0.32"
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security"] }
 winreg = "0.52"
 wmi = "0.18"

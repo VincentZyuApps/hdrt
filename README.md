@@ -86,6 +86,7 @@ hdrt -e tui
 hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
+hdrt tui -t 2000
 ```
 
 Aliases:
@@ -151,6 +152,27 @@ Spinner styles:
 - `unicode` is the default and uses Braille frames.
 - `ascii` uses `/ | \ -`.
 - `dots` uses a dotted pulse.
+
+## 🖥️ TUI
+
+`hdrt tui` opens the live Ratatui interface. It combines the static hardware inventory with real-time CPU, memory, and disk telemetry.
+
+```bash
+hdrt tui
+hdrt tui --tab cpu
+hdrt tui --tab disk -t 1000
+hdrt tui --interval 2000
+```
+
+TUI controls:
+
+- `Tab` / `Left` / `Right` / `WASD`: switch tabs.
+- `z` / `c`: switch the global chart style between line, scatter, bar, sparkline, and gauge.
+- `j` / `k`: select disks in the disk tab.
+- `r`: refresh the static hardware inventory and reset live samples.
+- `q` / `Esc`: quit.
+
+The default refresh interval is `2000` ms. Values below `250` ms are clamped to `250` ms.
 
 ## 🧾 Output Formats
 

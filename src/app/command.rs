@@ -27,5 +27,8 @@ pub enum Command {
     Tui {
         #[arg(long, value_enum, default_value_t = TuiTab::Overview)]
         tab: TuiTab,
+        /// TUI refresh interval in milliseconds.
+        #[arg(short = 't', long, default_value_t = crate::telemetry::DEFAULT_INTERVAL_MS)]
+        interval: u64,
     },
 }
