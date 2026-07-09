@@ -1,6 +1,7 @@
 pub mod options;
 
 mod benchmark;
+pub(crate) mod brand;
 mod capability;
 
 #[cfg(target_os = "android")]

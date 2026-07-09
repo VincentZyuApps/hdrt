@@ -1,5 +1,6 @@
 pub mod capability;
 pub mod cpu;
+pub mod debug;
 pub mod disk;
 pub mod memory;
 pub mod motherboard;
@@ -8,6 +9,7 @@ pub mod warning;
 
 pub use capability::{CapabilityReport, ToolStatus};
 pub use cpu::CpuInfo;
+pub use debug::DebugRecord;
 pub use disk::DiskInfo;
 pub use memory::MemoryDevice;
 pub use motherboard::MotherboardInfo;

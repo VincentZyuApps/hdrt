@@ -5,19 +5,12 @@ use crate::hardware::{is_unknown, unknown, DiskInfo, HdrtWarning};
 
 use super::brand::{brand_from_model_family, brand_from_vendor_or_model, infer_brand_from_model};
 use super::command::{
-    format_bytes, non_empty_or_unknown, parse_key_values, run_command, value_or_unknown,
+    format_bytes, non_empty_or_unknown, parse_key_values, run_command, run_shell_script,
+    value_or_unknown,
 };
 
 pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
-    let output = run_command(
-        "lsblk",
-        &[
-            "-d",
-            "-P",
-            "-o",
-            "NAME,MODEL,SERIAL,SIZE,ROTA,TYPE,TRAN,VENDOR,REV",
-        ],
-    );
+    let output = run_shell_script(include_str!("scripts/collect_disks.sh"));
 
     let Ok(output) = output else {
         return collect_df_logical_disks_with_warning(

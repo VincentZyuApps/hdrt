@@ -32,5 +32,6 @@ pub(super) fn collect(source: &str) -> HardwareReport {
             format!("Using placeholder fallback collector: {source}."),
             "Some hardware fields may be Unknown until the native collector is implemented.",
         )],
+        debug: Vec::new(),
     }
 }

@@ -17,6 +17,21 @@ pub(super) fn run_command(program: &str, args: &[&str]) -> Result<String, String
     }
 }
 
+pub(super) fn run_shell_script(script: &str) -> Result<String, String> {
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(script)
+        .output()
+        .map_err(|err| err.to_string())?;
+
+    if output.status.success() {
+        String::from_utf8(output.stdout).map_err(|err| err.to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(stderr.trim().to_string())
+    }
+}
+
 pub(super) fn parse_key_values(line: &str) -> HashMap<String, String> {
     let mut values = HashMap::new();
     let chars: Vec<char> = line.chars().collect();

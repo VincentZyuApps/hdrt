@@ -14,6 +14,7 @@ pub fn collect_report(_options: CollectOptions) -> HardwareReport {
         cpu: cpu::collect(),
         motherboard: motherboard::collect(),
         warnings: Vec::new(),
+        debug: Vec::new(),
     };
 
     report.warnings.push(HdrtWarning::with_hint(

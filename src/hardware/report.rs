@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{CpuInfo, DiskInfo, MemoryDevice, MotherboardInfo, HdrtWarning};
+use super::{CpuInfo, DebugRecord, DiskInfo, HdrtWarning, MemoryDevice, MotherboardInfo};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Section {
@@ -18,4 +18,6 @@ pub struct HardwareReport {
     pub cpu: Option<CpuInfo>,
     pub motherboard: Option<MotherboardInfo>,
     pub warnings: Vec<HdrtWarning>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub debug: Vec<DebugRecord>,
 }

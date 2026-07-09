@@ -13,6 +13,7 @@ pub fn collect_report() -> Result<HardwareReport, String> {
         cpu: super::cpu::collect(&root),
         motherboard: super::motherboard::collect(&root),
         warnings: Vec::new(),
+        debug: Vec::new(),
     })
 }
 
@@ -38,6 +39,7 @@ pub fn fallback_report(err: String) -> HardwareReport {
             err,
             "Run hdrt --backend shell from PowerShell or Administrator PowerShell and try again.",
         )],
+        debug: Vec::new(),
     }
 }
 

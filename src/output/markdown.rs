@@ -24,6 +24,10 @@ pub fn render_report(report: &HardwareReport, section: Section, lang: Lang, emoj
         output.push(render_warnings(&warnings, lang, emoji));
     }
 
+    if !report.debug.is_empty() {
+        output.push(render_debug(&report.debug));
+    }
+
     output.join("\n\n")
 }
 
@@ -297,6 +301,33 @@ fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String 
         if let Some(hint) = &warning.hint {
             lines.push(format!("  - {}: {hint}", label(lang, "hint", emoji)));
         }
+    }
+
+    lines.join("\n")
+}
+
+fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
+    let mut lines = vec![
+        "## Debug".to_string(),
+        String::new(),
+        "| target | source | fields | note |".to_string(),
+        "| --- | --- | --- | --- |".to_string(),
+    ];
+
+    for record in records {
+        let fields = record
+            .fields
+            .iter()
+            .map(|(key, value)| format!("{key}={value}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        lines.push(format!(
+            "| {} | {} | {} | {} |",
+            record.target,
+            record.source,
+            fields,
+            record.note.clone().unwrap_or_default()
+        ));
     }
 
     lines.join("\n")

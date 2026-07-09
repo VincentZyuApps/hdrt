@@ -40,4 +40,8 @@ pub struct Cli {
     /// Display language for table, markdown, and TUI output.
     #[arg(long, global = true, value_enum, default_value_t = Lang::EnUs)]
     pub lang: Lang,
+
+    /// Print additional collector diagnostics after normal output.
+    #[arg(long, global = true)]
+    pub debug: bool,
 }

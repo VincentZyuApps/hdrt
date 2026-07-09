@@ -2,7 +2,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 $physicalDisks = @(
   Get-PhysicalDisk |
-    Select-Object DeviceId, FriendlyName, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus
+    Select-Object DeviceId, FriendlyName, Manufacturer, Model, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus
 )
 
 $diskDrives = @(

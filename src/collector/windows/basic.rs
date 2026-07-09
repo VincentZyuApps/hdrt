@@ -14,6 +14,7 @@ pub fn collect_report() -> HardwareReport {
         cpu: collect_cpu(&system),
         motherboard: collect_motherboard(),
         warnings: Vec::new(),
+        debug: Vec::new(),
     }
 }
 

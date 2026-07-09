@@ -96,6 +96,7 @@ fn collect_auto(options: CollectOptions) -> HardwareReport {
         cpu: merge_cpu(native.cpu, shell.cpu),
         motherboard: merge_motherboard(native.motherboard, shell.motherboard),
         warnings: merge_warnings(native.warnings, shell.warnings),
+        debug: merge_debug(native.debug, shell.debug),
     }
 }
 
@@ -196,6 +197,14 @@ fn merge_motherboard(
 }
 
 fn merge_warnings(mut native: Vec<HdrtWarning>, shell: Vec<HdrtWarning>) -> Vec<HdrtWarning> {
+    native.extend(shell);
+    native
+}
+
+fn merge_debug(
+    mut native: Vec<crate::hardware::DebugRecord>,
+    shell: Vec<crate::hardware::DebugRecord>,
+) -> Vec<crate::hardware::DebugRecord> {
     native.extend(shell);
     native
 }

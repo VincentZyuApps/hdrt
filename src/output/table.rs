@@ -34,6 +34,10 @@ pub fn render_report(
         output.push(render_warnings(&warnings, lang, emoji));
     }
 
+    if !report.debug.is_empty() {
+        output.push(render_debug(&report.debug, format));
+    }
+
     output.join("\n\n")
 }
 
@@ -339,6 +343,39 @@ fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String 
         }
     }
     lines.join("\n")
+}
+
+fn render_debug(records: &[crate::hardware::DebugRecord], format: OutputFormat) -> String {
+    let rows = records
+        .iter()
+        .map(|record| {
+            vec![
+                record.target.clone(),
+                record.source.clone(),
+                record
+                    .fields
+                    .iter()
+                    .map(|(key, value)| format!("{key}={value}"))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                record.note.clone().unwrap_or_default(),
+            ]
+        })
+        .collect();
+
+    format!(
+        "Debug\n{}",
+        make_table(
+            vec![
+                "target".to_string(),
+                "source".to_string(),
+                "fields".to_string(),
+                "note".to_string()
+            ],
+            rows,
+            format
+        )
+    )
 }
 
 fn label(lang: Lang, key: &str, enabled: bool) -> String {

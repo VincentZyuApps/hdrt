@@ -50,6 +50,7 @@ fn print_benchmarks(cli: &Cli) -> Result<()> {
     let benchmarks = collector::benchmark_report(CollectOptions {
         detail: cli.detail,
         backend: cli.backend,
+        debug: cli.debug,
     });
     let rendered = output::render_benchmarks(&benchmarks, cli.format, cli.lang, cli.emoji)?;
     spinner.finish();
@@ -62,6 +63,7 @@ fn print_section(cli: &Cli, section: Section) -> Result<()> {
     let report = collector::collect_report(CollectOptions {
         detail: cli.detail,
         backend: cli.backend,
+        debug: cli.debug,
     });
     let rendered = output::render_report(&report, section, cli.format, cli.lang, cli.emoji)?;
     spinner.finish();

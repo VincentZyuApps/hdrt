@@ -18,24 +18,31 @@ pub fn render_report(
     struct SelectedReport<'a, T> {
         data: T,
         warnings: &'a [HdrtWarning],
+        #[serde(skip_serializing_if = "Option::is_none")]
+        debug: Option<&'a Vec<crate::hardware::DebugRecord>>,
     }
 
+    let debug = (!report.debug.is_empty()).then_some(&report.debug);
     let value = match section {
         Section::Disk => serde_json::to_value(SelectedReport {
             data: &report.disks,
             warnings: &report.warnings,
+            debug,
         })?,
         Section::Memory => serde_json::to_value(SelectedReport {
             data: &report.memory,
             warnings: &report.warnings,
+            debug,
         })?,
         Section::Cpu => serde_json::to_value(SelectedReport {
             data: &report.cpu,
             warnings: &report.warnings,
+            debug,
         })?,
         Section::Motherboard => serde_json::to_value(SelectedReport {
             data: &report.motherboard,
             warnings: &report.warnings,
+            debug,
         })?,
         Section::All => serde_json::to_value(report)?,
     };

@@ -7,6 +7,7 @@ pub(super) fn collect_report() -> HardwareReport {
         cpu: super::cpu::collect(),
         motherboard: super::motherboard::collect(),
         warnings: Vec::new(),
+        debug: Vec::new(),
     };
 
     if report.disks.is_empty() {

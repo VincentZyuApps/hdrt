@@ -3,6 +3,7 @@ mod cpu;
 mod disk;
 mod memory;
 mod motherboard;
+mod native_storage;
 mod native_wmi;
 pub(crate) mod privilege;
 mod registry;
@@ -17,16 +18,16 @@ use std::time::Instant;
 
 pub fn collect_report(options: CollectOptions) -> HardwareReport {
     match options.backend {
-        Backend::Auto => collect_auto(),
-        Backend::Native => collect_native(),
+        Backend::Auto => collect_auto(options),
+        Backend::Native => collect_native(options),
         Backend::Shell => collect_shell(),
     }
 }
 
-pub fn benchmark_report(_options: CollectOptions) -> BenchmarkReport {
+pub fn benchmark_report(options: CollectOptions) -> BenchmarkReport {
     let rows = vec![
-        benchmark_auto(),
-        benchmark_native(),
+        benchmark_auto(options),
+        benchmark_native(options),
         benchmark_shell(),
         benchmark_basic(),
     ];
@@ -38,8 +39,8 @@ pub fn benchmark_report(_options: CollectOptions) -> BenchmarkReport {
     }
 }
 
-fn collect_auto() -> HardwareReport {
-    match native_wmi::collect_report() {
+fn collect_auto(options: CollectOptions) -> HardwareReport {
+    match native_wmi::collect_report(options) {
         Ok(mut report) => {
             add_administrator_warning(&mut report);
             report
@@ -70,8 +71,8 @@ fn collect_auto() -> HardwareReport {
     }
 }
 
-fn collect_native() -> HardwareReport {
-    match native_wmi::collect_report() {
+fn collect_native(options: CollectOptions) -> HardwareReport {
+    match native_wmi::collect_report(options) {
         Ok(mut report) => {
             add_administrator_warning(&mut report);
             report
@@ -109,9 +110,9 @@ fn add_administrator_warning(report: &mut HardwareReport) {
     }
 }
 
-fn benchmark_auto() -> BenchmarkRow {
+fn benchmark_auto(options: CollectOptions) -> BenchmarkRow {
     let started = Instant::now();
-    let report = collect_auto();
+    let report = collect_auto(options);
     benchmark_ok(
         "auto",
         started,
@@ -131,9 +132,9 @@ fn benchmark_basic() -> BenchmarkRow {
     )
 }
 
-fn benchmark_native() -> BenchmarkRow {
+fn benchmark_native(options: CollectOptions) -> BenchmarkRow {
     let started = Instant::now();
-    let report = collect_native();
+    let report = collect_native(options);
     benchmark_ok(
         "native",
         started,

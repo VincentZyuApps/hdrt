@@ -8,5 +8,6 @@ pub(super) fn collect_report(options: CollectOptions) -> HardwareReport {
         cpu: super::cpu::collect(),
         motherboard: super::motherboard::collect(),
         warnings: Vec::new(),
+        debug: Vec::new(),
     }
 }

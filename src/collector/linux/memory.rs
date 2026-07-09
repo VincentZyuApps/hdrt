@@ -2,11 +2,11 @@ use std::fs;
 
 use crate::hardware::{is_unknown, unknown, HdrtWarning, MemoryDevice};
 
-use super::command::{format_bytes, non_empty_or_unknown, run_command};
+use super::command::{format_bytes, non_empty_or_unknown, run_shell_script};
 
 pub(super) fn collect() -> Vec<MemoryDevice> {
     if which::which("dmidecode").is_ok() {
-        match run_command("dmidecode", &["-t", "memory"]) {
+        match run_shell_script(include_str!("scripts/collect_memory.sh")) {
             Ok(output) => {
                 let devices = parse_dmidecode_memory(&output);
                 if !devices.is_empty() {
