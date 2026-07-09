@@ -476,8 +476,17 @@ jobs:
           REPO="${{ github.repository }}"
           BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 
-          curl -fSL -o "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
-          curl -fSL -o "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
+          download_release_asset() {
+            local output="$1"
+            local url="$2"
+            curl --fail --location --show-error \
+              --retry 5 --retry-delay 10 --retry-all-errors \
+              --connect-timeout 30 --max-time 300 \
+              -o "$output" "$url"
+          }
+
+          download_release_asset "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
+          download_release_asset "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
 
       - name: Generate Scoop manifest
         run: |
@@ -556,8 +565,17 @@ jobs:
           REPO="${{ github.repository }}"
           BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 
-          curl -fSL -o "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
-          curl -fSL -o "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
+          download_release_asset() {
+            local output="$1"
+            local url="$2"
+            curl --fail --location --show-error \
+              --retry 5 --retry-delay 10 --retry-all-errors \
+              --connect-timeout 30 --max-time 300 \
+              -o "$output" "$url"
+          }
+
+          download_release_asset "hdrt-windows-x86_64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-x86_64-${VERSION}.exe"
+          download_release_asset "hdrt-windows-aarch64-${VERSION}.exe" "${BASE_URL}/hdrt-windows-aarch64-${VERSION}.exe"
 
       - name: Generate Gitee Scoop manifest
         run: |
