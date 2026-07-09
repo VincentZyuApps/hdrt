@@ -1,6 +1,9 @@
-use std::time::Instant;
-
 use sysinfo::{Disks, System};
+
+#[cfg(windows)]
+use serde::Deserialize;
+#[cfg(windows)]
+use wmi::WMIConnection;
 
 pub const DEFAULT_INTERVAL_MS: u64 = 2_000;
 pub const MIN_INTERVAL_MS: u64 = 250;
@@ -43,7 +46,7 @@ pub struct DiskTelemetry {
 pub struct TelemetrySampler {
     system: System,
     disks: Disks,
-    last_disk_sample: Instant,
+    disk_io_sampler: DiskIoSampler,
 }
 
 impl TelemetrySampler {
@@ -53,26 +56,20 @@ impl TelemetrySampler {
         system.refresh_memory();
 
         let mut disks = Disks::new_with_refreshed_list();
-        disks.refresh(false);
+        disks.refresh();
 
         Self {
             system,
             disks,
-            last_disk_sample: Instant::now(),
+            disk_io_sampler: DiskIoSampler::new(),
         }
     }
 
     pub fn sample(&mut self) -> TelemetrySnapshot {
-        let now = Instant::now();
-        let elapsed_secs = now
-            .duration_since(self.last_disk_sample)
-            .as_secs_f64()
-            .max(0.001);
-
         self.system.refresh_cpu_usage();
         self.system.refresh_memory();
-        self.disks.refresh(false);
-        self.last_disk_sample = now;
+        self.disks.refresh();
+        let disk_io = self.disk_io_sampler.sample();
 
         let total_memory = self.system.total_memory();
         let used_memory = self.system.used_memory();
@@ -85,7 +82,7 @@ impl TelemetrySampler {
                 .system
                 .cpus()
                 .iter()
-                .map(|cpu| clamp_percent(cpu.usage() as f64))
+                .map(|cpu| clamp_percent(cpu.cpu_usage() as f64))
                 .collect(),
             memory: MemoryTelemetry {
                 total_bytes: total_memory,
@@ -104,19 +101,27 @@ impl TelemetrySampler {
                     let total = disk.total_space();
                     let available = disk.available_space();
                     let used = total.saturating_sub(available);
-                    let usage = disk.usage();
+                    let mount_point = disk.mount_point().display().to_string();
+                    let name = disk.name().to_string_lossy().into_owned();
+                    let io = find_disk_io(&disk_io, &mount_point, &name);
                     DiskTelemetry {
-                        name: disk.name().to_string_lossy().into_owned(),
-                        mount_point: disk.mount_point().display().to_string(),
+                        name,
+                        mount_point,
                         file_system: disk.file_system().to_string_lossy().into_owned(),
                         total_bytes: total,
                         available_bytes: available,
                         used_bytes: used,
                         used_percent: percent(used, total),
-                        read_bytes_per_sec: usage.read_bytes as f64 / elapsed_secs,
-                        write_bytes_per_sec: usage.written_bytes as f64 / elapsed_secs,
-                        total_read_bytes: usage.total_read_bytes,
-                        total_written_bytes: usage.total_written_bytes,
+                        read_bytes_per_sec: io
+                            .as_ref()
+                            .map(|io| io.read_bytes_per_sec)
+                            .unwrap_or_default(),
+                        write_bytes_per_sec: io
+                            .as_ref()
+                            .map(|io| io.write_bytes_per_sec)
+                            .unwrap_or_default(),
+                        total_read_bytes: 0,
+                        total_written_bytes: 0,
                     }
                 })
                 .collect(),
@@ -175,4 +180,97 @@ fn percent(used: u64, total: u64) -> f64 {
 
 fn clamp_percent(value: f64) -> f64 {
     value.clamp(0.0, 100.0)
+}
+
+#[derive(Debug, Clone, Default)]
+struct DiskIoCounter {
+    name: String,
+    read_bytes_per_sec: f64,
+    write_bytes_per_sec: f64,
+}
+
+fn find_disk_io<'a>(
+    counters: &'a [DiskIoCounter],
+    mount_point: &str,
+    disk_name: &str,
+) -> Option<&'a DiskIoCounter> {
+    let key = disk_io_key(mount_point, disk_name);
+    counters
+        .iter()
+        .find(|counter| counter.name.eq_ignore_ascii_case(&key))
+}
+
+fn disk_io_key(mount_point: &str, disk_name: &str) -> String {
+    let mount = mount_point
+        .trim()
+        .trim_end_matches(|ch| ch == '\\' || ch == '/');
+    if !mount.is_empty() {
+        return mount.to_string();
+    }
+
+    disk_name
+        .trim()
+        .trim_end_matches(|ch| ch == '\\' || ch == '/')
+        .to_string()
+}
+
+#[cfg(windows)]
+struct DiskIoSampler {
+    conn: Option<WMIConnection>,
+}
+
+#[cfg(windows)]
+impl DiskIoSampler {
+    fn new() -> Self {
+        Self {
+            conn: WMIConnection::with_namespace_path("ROOT\\CIMV2").ok(),
+        }
+    }
+
+    fn sample(&mut self) -> Vec<DiskIoCounter> {
+        let Some(conn) = &self.conn else {
+            return Vec::new();
+        };
+
+        let query = "SELECT Name, DiskReadBytesPersec, DiskWriteBytesPersec \
+            FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk";
+        conn.raw_query::<Win32LogicalDiskPerf>(query)
+            .map(|rows| {
+                rows.into_iter()
+                    .filter(|row| row.name.as_deref() != Some("_Total"))
+                    .map(|row| DiskIoCounter {
+                        name: row.name.unwrap_or_default(),
+                        read_bytes_per_sec: row.disk_read_bytes_per_sec.unwrap_or_default() as f64,
+                        write_bytes_per_sec: row.disk_write_bytes_per_sec.unwrap_or_default()
+                            as f64,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
+#[cfg(windows)]
+#[derive(Debug, Deserialize)]
+struct Win32LogicalDiskPerf {
+    #[serde(rename = "Name")]
+    name: Option<String>,
+    #[serde(rename = "DiskReadBytesPersec")]
+    disk_read_bytes_per_sec: Option<u64>,
+    #[serde(rename = "DiskWriteBytesPersec")]
+    disk_write_bytes_per_sec: Option<u64>,
+}
+
+#[cfg(not(windows))]
+struct DiskIoSampler;
+
+#[cfg(not(windows))]
+impl DiskIoSampler {
+    fn new() -> Self {
+        Self
+    }
+
+    fn sample(&mut self) -> Vec<DiskIoCounter> {
+        Vec::new()
+    }
 }
