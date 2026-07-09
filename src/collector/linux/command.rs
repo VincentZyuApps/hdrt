@@ -3,24 +3,16 @@ use std::process::Command;
 
 use crate::hardware::unknown;
 
-pub(super) fn run_command(program: &str, args: &[&str]) -> Result<String, String> {
-    let output = Command::new(program)
-        .args(args)
-        .output()
-        .map_err(|err| err.to_string())?;
-
-    if output.status.success() {
-        String::from_utf8(output.stdout).map_err(|err| err.to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(stderr.trim().to_string())
-    }
+pub(super) fn run_shell_script(script: &str) -> Result<String, String> {
+    run_shell_script_with_args(script, &[])
 }
 
-pub(super) fn run_shell_script(script: &str) -> Result<String, String> {
+pub(super) fn run_shell_script_with_args(script: &str, args: &[&str]) -> Result<String, String> {
     let output = Command::new("sh")
         .arg("-c")
         .arg(script)
+        .arg("hdrt-script")
+        .args(args)
         .output()
         .map_err(|err| err.to_string())?;
 

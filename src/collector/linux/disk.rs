@@ -1,12 +1,10 @@
-use std::process::Command;
-
 use crate::app::options::DetailLevel;
 use crate::hardware::{is_unknown, unknown, DiskInfo, HdrtWarning};
 
 use super::brand::{brand_from_model_family, brand_from_vendor_or_model, infer_brand_from_model};
 use super::command::{
-    format_bytes, non_empty_or_unknown, parse_key_values, run_command, run_shell_script,
-    value_or_unknown,
+    format_bytes, non_empty_or_unknown, parse_key_values, run_shell_script,
+    run_shell_script_with_args, value_or_unknown,
 };
 
 pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
@@ -70,7 +68,7 @@ fn media_type(rota: &str, bus: &str) -> String {
 }
 
 fn collect_df_logical_disks() -> Vec<DiskInfo> {
-    match run_command("df", &["-kP"]) {
+    match run_shell_script(include_str!("scripts/collect_logical_disks.sh")) {
         Ok(output) => parse_df_logical_disks(&output),
         Err(_) => Vec::new(),
     }
@@ -143,13 +141,13 @@ fn enrich_with_smartctl(disks: &mut [DiskInfo], detail: DetailLevel) {
 
     for disk in disks {
         let path = format!("/dev/{}", disk.device);
-        let args = if require_smart {
-            vec!["-a", path.as_str()]
+        let detail_arg = if require_smart {
+            detail.as_script_arg()
         } else {
-            vec!["-i", "-H", path.as_str()]
+            "basic"
         };
 
-        match run_smartctl(&args) {
+        match run_smartctl(detail_arg, &path) {
             Ok(output) => apply_smartctl_output(disk, &output),
             Err(err) => {
                 if require_smart {
@@ -164,22 +162,21 @@ fn enrich_with_smartctl(disks: &mut [DiskInfo], detail: DetailLevel) {
     }
 }
 
-fn run_smartctl(args: &[&str]) -> Result<String, String> {
-    let output = Command::new("smartctl")
-        .env("LC_ALL", "C")
-        .args(args)
-        .output()
-        .map_err(|err| err.to_string())?;
+fn run_smartctl(detail: &str, path: &str) -> Result<String, String> {
+    run_shell_script_with_args(include_str!("scripts/collect_smart.sh"), &[detail, path])
+}
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    if !stdout.trim().is_empty() {
-        return Ok(stdout);
-    }
+trait DetailLevelScriptArg {
+    fn as_script_arg(self) -> &'static str;
+}
 
-    if output.status.success() {
-        Ok(stdout)
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+impl DetailLevelScriptArg for DetailLevel {
+    fn as_script_arg(self) -> &'static str {
+        match self {
+            DetailLevel::Basic => "basic",
+            DetailLevel::Smart => "smart",
+            DetailLevel::Full => "full",
+        }
     }
 }
 
