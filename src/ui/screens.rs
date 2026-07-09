@@ -53,6 +53,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         MetricKind::Percent,
         Color::Cyan,
         state.chart_mode,
+        state.interval,
     );
     draw_history_widget(
         frame,
@@ -67,6 +68,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         MetricKind::Percent,
         Color::Magenta,
         state.chart_mode,
+        state.interval,
     );
     draw_io_widget(
         frame,
@@ -77,6 +79,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Green,
         Color::Yellow,
         state.chart_mode,
+        state.interval,
     );
 }
 
@@ -99,6 +102,7 @@ pub(super) fn draw_cpu(frame: &mut Frame, area: Rect, state: &TuiState) {
         MetricKind::Percent,
         Color::Cyan,
         state.chart_mode,
+        state.interval,
     );
 
     if state.latest.cpu_cores_percent.is_empty() {
@@ -174,6 +178,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
             MetricKind::Percent,
             Color::Magenta,
             state.chart_mode,
+            state.interval,
         );
         draw_memory_inventory(frame, body[1], state);
     } else {
@@ -186,6 +191,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
             MetricKind::Percent,
             Color::Magenta,
             state.chart_mode,
+            state.interval,
         );
     }
 }
@@ -256,6 +262,7 @@ fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Green,
         Color::Yellow,
         state.chart_mode,
+        state.interval,
     );
 }
 

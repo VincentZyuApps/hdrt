@@ -2,7 +2,7 @@ pub mod cli;
 pub mod command;
 pub mod options;
 mod help;
-mod spinner;
+pub(crate) mod spinner;
 
 use anyhow::Result;
 use clap::Parser;
@@ -47,6 +47,8 @@ fn execute(cli: Cli) -> Result<()> {
                 debug: cli.debug,
             },
             interval,
+            cli.no_spinner,
+            cli.spinner_style,
         ),
     }
 }

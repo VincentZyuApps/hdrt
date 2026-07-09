@@ -4,7 +4,6 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
 use ratatui::Frame;
 
-use crate::emoji;
 use crate::i18n::{t, Lang};
 
 use super::panels::{draw_health, draw_motherboard, draw_warnings};
@@ -46,17 +45,9 @@ pub(super) fn draw(frame: &mut Frame, state: &TuiState) {
 
 fn draw_tabs(frame: &mut Frame, area: Rect, state: &TuiState) {
     let titles = tab_titles(state.lang, state.emoji);
-    let mode = format!(
-        "{}: {} | {}: {} ms",
-        t(state.lang, "tui.chart_mode"),
-        state.chart_mode.label(state.lang),
-        t(state.lang, "tui.interval"),
-        state.interval.as_millis()
-    );
-    let title = format!("{}  {mode}", emoji::decorate(state.emoji, "app.title", "hdrt"));
     let tabs = Tabs::new(titles.iter().cloned())
         .select(state.tab)
-        .block(Block::bordered().title(title))
+        .block(Block::bordered())
         .style(Style::default().fg(Color::Gray))
         .highlight_style(
             Style::default()

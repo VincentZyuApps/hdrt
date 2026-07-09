@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::time::Duration;
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -24,6 +25,7 @@ pub(super) fn draw_history_widget(
     kind: MetricKind,
     color: Color,
     mode: ChartMode,
+    interval: Duration,
 ) {
     let max_value = match kind {
         MetricKind::Percent => 100.0,
@@ -39,6 +41,7 @@ pub(super) fn draw_history_widget(
             color,
             GraphType::Line,
             kind,
+            interval,
         ),
         ChartMode::Scatter => {
             draw_chart(
@@ -50,9 +53,12 @@ pub(super) fn draw_history_widget(
                 color,
                 GraphType::Scatter,
                 kind,
+                interval,
             )
         }
-        ChartMode::Bar => draw_history_bars(frame, area, title, history, max_value, color, kind),
+        ChartMode::Bar => {
+            draw_history_bars(frame, area, title, history, max_value, color, kind, interval)
+        }
         ChartMode::Sparkline => draw_sparkline(frame, area, title, history, max_value, color),
         ChartMode::Gauge => draw_gauge_panel(
             frame,
@@ -77,6 +83,7 @@ pub(super) fn draw_io_widget(
     read_color: Color,
     write_color: Color,
     mode: ChartMode,
+    interval: Duration,
 ) {
     let read_current = read_history.back().copied().unwrap_or_default();
     let write_current = write_history.back().copied().unwrap_or_default();
@@ -95,6 +102,7 @@ pub(super) fn draw_io_widget(
             write_history,
             max_value,
             GraphType::Line,
+            interval,
         ),
         ChartMode::Scatter => draw_dual_chart(
             frame,
@@ -104,6 +112,7 @@ pub(super) fn draw_io_widget(
             write_history,
             max_value,
             GraphType::Scatter,
+            interval,
         ),
         ChartMode::Bar => draw_bar_chart(
             frame,
@@ -228,6 +237,7 @@ fn draw_chart(
     color: Color,
     graph_type: GraphType,
     kind: MetricKind,
+    interval: Duration,
 ) {
     let points = history_points(history);
     let x_max = points.len().saturating_sub(1).max(1) as f64;
@@ -242,7 +252,7 @@ fn draw_chart(
         .x_axis(
             Axis::default()
                 .bounds([0.0, x_max])
-                .labels(vec![Span::raw("old"), Span::raw("now")]),
+                .labels(time_axis_labels(points.len(), interval, area.width)),
         )
         .y_axis(
             Axis::default()
@@ -263,6 +273,7 @@ fn draw_dual_chart(
     write_history: &VecDeque<f64>,
     max_value: f64,
     graph_type: GraphType,
+    interval: Duration,
 ) {
     let read_points = history_points(read_history);
     let write_points = history_points(write_history);
@@ -288,7 +299,11 @@ fn draw_dual_chart(
         .x_axis(
             Axis::default()
                 .bounds([0.0, x_max])
-                .labels(vec![Span::raw("old"), Span::raw("now")]),
+                .labels(time_axis_labels(
+                    read_points.len().max(write_points.len()),
+                    interval,
+                    area.width,
+                )),
         )
         .y_axis(
             Axis::default()
@@ -329,6 +344,7 @@ fn draw_history_bars(
     max_value: f64,
     color: Color,
     kind: MetricKind,
+    interval: Duration,
 ) {
     let visible = (area.width / 4).clamp(2, 40) as usize;
     let skip = history.len().saturating_sub(visible);
@@ -336,7 +352,13 @@ fn draw_history_bars(
         .iter()
         .skip(skip)
         .enumerate()
-        .map(|(index, value)| (index.to_string(), value.round().max(0.0) as u64))
+        .map(|(index, value)| {
+            let sample_index = skip + index;
+            (
+                sample_age_label(history.len(), sample_index, interval),
+                value.round().max(0.0) as u64,
+            )
+        })
         .collect::<Vec<_>>();
     draw_bar_chart(
         frame,
@@ -350,4 +372,40 @@ fn draw_history_bars(
         max_value.round().max(1.0) as u64,
         color,
     );
+}
+
+fn time_axis_labels(sample_count: usize, interval: Duration, width: u16) -> Vec<Span<'static>> {
+    let max_age = sample_age(sample_count, 0, interval);
+    if max_age <= 0.0 {
+        return vec![Span::raw("0s")];
+    }
+
+    if width < 42 {
+        vec![Span::raw(format_age(max_age)), Span::raw("0s")]
+    } else {
+        vec![
+            Span::raw(format_age(max_age)),
+            Span::raw(format_age(max_age / 2.0)),
+            Span::raw("0s"),
+        ]
+    }
+}
+
+fn sample_age_label(sample_count: usize, sample_index: usize, interval: Duration) -> String {
+    format_age(sample_age(sample_count, sample_index, interval))
+}
+
+fn sample_age(sample_count: usize, sample_index: usize, interval: Duration) -> f64 {
+    sample_count
+        .saturating_sub(1)
+        .saturating_sub(sample_index) as f64
+        * interval.as_secs_f64()
+}
+
+fn format_age(seconds: f64) -> String {
+    if seconds > 0.0 && seconds < 1.0 {
+        format!("{:.0}ms", seconds * 1_000.0)
+    } else {
+        format!("{:.0}s", seconds.round())
+    }
 }

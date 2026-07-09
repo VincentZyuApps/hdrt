@@ -56,6 +56,7 @@ pub fn t(key: &str) -> &'static str {
         "spinner.collect" => "正在采集硬件信息...",
         "spinner.doctor" => "正在检查运行环境...",
         "spinner.bench" => "正在测试采集后端...",
+        "spinner.tui" => "正在准备实时 TUI...",
         "tui.subtitle" => "Hardware Device Rust Ratatui",
         "tui.memory_hint" => "记忆提示：hard rata",
         "tui.placeholder" => "这是第一版 TUI 外壳，后续会接入数据面板。",

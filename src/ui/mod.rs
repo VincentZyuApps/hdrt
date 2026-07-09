@@ -3,9 +3,11 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::app::options::TuiTab;
+use crate::app::options::{SpinnerStyle, TuiTab};
+use crate::app::spinner::Spinner;
 use crate::collector::CollectOptions;
-use crate::i18n::Lang;
+use crate::emoji as emoji_icons;
+use crate::i18n::{t, Lang};
 
 mod panels;
 mod render;
@@ -22,8 +24,17 @@ pub fn run(
     emoji: bool,
     options: CollectOptions,
     interval_ms: u64,
+    no_spinner: bool,
+    spinner_style: SpinnerStyle,
 ) -> Result<()> {
+    let loading = Spinner::start(
+        !no_spinner,
+        spinner_style,
+        emoji_icons::decorate(emoji, "spinner.tui", t(lang, "spinner.tui")),
+    );
     let mut state = TuiState::new(initial_tab, lang, emoji, options, interval_ms);
+    loading.finish();
+
     let mut terminal = ratatui::init();
     let result = run_inner(&mut terminal, &mut state);
     ratatui::restore();

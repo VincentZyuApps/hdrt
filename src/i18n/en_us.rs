@@ -56,6 +56,7 @@ pub fn t(key: &str) -> &'static str {
         "spinner.collect" => "Collecting hardware...",
         "spinner.doctor" => "Checking environment...",
         "spinner.bench" => "Benchmarking backends...",
+        "spinner.tui" => "Preparing live TUI...",
         "tui.subtitle" => "Hardware Device Rust Ratatui",
         "tui.memory_hint" => "Memory hint: hard rata",
         "tui.placeholder" => "This is the first TUI shell. Data panels will be wired next.",

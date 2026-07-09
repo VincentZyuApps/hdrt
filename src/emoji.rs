@@ -66,6 +66,7 @@ pub fn icon(key: &str) -> Option<&'static str> {
         "spinner.collect" => Some("🖥️"),
         "spinner.doctor" => Some("🩺"),
         "spinner.bench" => Some("🧪"),
+        "spinner.tui" => Some("📊"),
         "tui.subtitle" => Some("🖥️"),
         "tui.memory_hint" => Some("🧠"),
         "tui.placeholder" => Some("🚧"),
