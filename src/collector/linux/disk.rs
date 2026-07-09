@@ -1,7 +1,6 @@
 use crate::app::options::DetailLevel;
 use crate::hardware::{is_unknown, unknown, DiskInfo, HdrtWarning};
 
-use super::brand::{brand_from_model_family, brand_from_vendor_or_model, infer_brand_from_model};
 use super::command::{
     format_bytes, non_empty_or_unknown, parse_key_values, run_shell_script,
     run_shell_script_with_args, value_or_unknown,
@@ -30,7 +29,6 @@ pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
             Some(DiskInfo {
                 device: name,
                 model: model.clone(),
-                brand: brand_from_vendor_or_model(values.get("VENDOR").map(String::as_str), &model),
                 serial: value_or_unknown(values.get("SERIAL")),
                 size: value_or_unknown(values.get("SIZE")),
                 media_type: media_type(rota, &bus),
@@ -46,7 +44,7 @@ pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
         return collect_df_logical_disks_with_warning(
             "lsblk-empty",
             "lsblk returned no parseable physical disk rows; using df logical volumes.",
-            "Check lsblk output support with: lsblk -d -P -o NAME,MODEL,SERIAL,SIZE,ROTA,TYPE,TRAN,VENDOR,REV.",
+            "Check lsblk output support with: lsblk -d -P -o NAME,MODEL,SERIAL,SIZE,ROTA,TYPE,TRAN,REV.",
         );
     }
 
@@ -182,10 +180,7 @@ impl DetailLevelScriptArg for DetailLevel {
 
 fn apply_smartctl_output(disk: &mut DiskInfo, output: &str) {
     for line in output.lines() {
-        if let Some(value) = line.strip_prefix("Model Family:") {
-            if let Some(brand) = brand_from_model_family(value) {
-                disk.brand = brand;
-            }
+        if line.strip_prefix("Model Family:").is_some() {
             disk.source = "lsblk + smartctl".to_string();
         } else if let Some(value) = line.strip_prefix("Device Model:") {
             apply_model_value(disk, value);
@@ -210,10 +205,7 @@ fn apply_smartctl_output(disk: &mut DiskInfo, output: &str) {
 fn apply_model_value(disk: &mut DiskInfo, value: &str) {
     let model = non_empty_or_unknown(value.trim());
     if is_unknown(&disk.model) {
-        disk.model = model.clone();
-    }
-    if is_unknown(&disk.brand) {
-        disk.brand = infer_brand_from_model(&model).unwrap_or_else(unknown);
+        disk.model = model;
     }
 }
 

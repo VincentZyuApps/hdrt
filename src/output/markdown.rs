@@ -132,10 +132,9 @@ fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
         format!("## {}", label(lang, "section.disk", emoji)),
         String::new(),
         format!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} | {} |",
             label(lang, "disk.device", emoji),
             label(lang, "disk.model", emoji),
-            label(lang, "disk.brand", emoji),
             label(lang, "disk.serial", emoji),
             label(lang, "disk.size", emoji),
             label(lang, "disk.kind", emoji),
@@ -143,15 +142,14 @@ fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
             label(lang, "disk.firmware", emoji),
             label(lang, "disk.health", emoji)
         ),
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
+        "| --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
     ];
 
     for disk in &report.disks {
         lines.push(format!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} | {} |",
             value(&disk.device, lang),
             value(&disk.model, lang),
-            value(&disk.brand, lang),
             value(&disk.serial, lang),
             value(&disk.size, lang),
             value(&disk.media_type, lang),
@@ -309,25 +307,26 @@ fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String 
 fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
     let mut lines = vec![
         "## Debug".to_string(),
-        String::new(),
-        "| target | source | fields | note |".to_string(),
-        "| --- | --- | --- | --- |".to_string(),
     ];
 
-    for record in records {
-        let fields = record
-            .fields
-            .iter()
-            .map(|(key, value)| format!("{key}={value}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        lines.push(format!(
-            "| {} | {} | {} | {} |",
-            record.target,
-            record.source,
-            fields,
-            record.note.clone().unwrap_or_default()
-        ));
+    for (index, record) in records.iter().enumerate() {
+        lines.push(String::new());
+        lines.push(format!("### {}. {}", index + 1, record.target));
+        lines.push(String::new());
+        lines.push(format!("- source: `{}`", record.source));
+
+        if let Some(note) = record.note.as_deref().filter(|note| !note.is_empty()) {
+            lines.push(format!("- note: {note}"));
+        }
+
+        if record.fields.is_empty() {
+            lines.push("- fields: none".to_string());
+        } else {
+            lines.push("- fields:".to_string());
+            for (key, value) in &record.fields {
+                lines.push(format!("  - `{key}`: `{value}`"));
+            }
+        }
     }
 
     lines.join("\n")

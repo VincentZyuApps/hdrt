@@ -19,7 +19,6 @@ pub fn t(key: &str) -> &'static str {
         "section.all" => "全部",
         "disk.device" => "设备",
         "disk.model" => "型号",
-        "disk.brand" => "品牌",
         "disk.serial" => "序列号",
         "disk.size" => "容量",
         "disk.kind" => "类型",

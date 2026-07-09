@@ -7,7 +7,6 @@ use super::unknown;
 pub struct DiskInfo {
     pub device: String,
     pub model: String,
-    pub brand: String,
     pub serial: String,
     pub size: String,
     pub media_type: String,
@@ -23,7 +22,6 @@ impl Default for DiskInfo {
         Self {
             device: unknown(),
             model: unknown(),
-            brand: unknown(),
             serial: unknown(),
             size: unknown(),
             media_type: unknown(),

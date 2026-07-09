@@ -19,7 +19,6 @@ pub fn t(key: &str) -> &'static str {
         "section.all" => "All",
         "disk.device" => "device",
         "disk.model" => "model",
-        "disk.brand" => "brand",
         "disk.serial" => "serial",
         "disk.size" => "size",
         "disk.kind" => "kind",

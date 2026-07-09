@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use crate::hardware::{unknown, DiskInfo};
 
-use super::brand::brand_from_vendor_or_model;
 use super::command::{format_bytes, non_empty_or_unknown};
 
 pub(super) fn collect() -> Vec<DiskInfo> {
@@ -24,14 +23,12 @@ fn disk_from_sysfs(path: PathBuf) -> Option<DiskInfo> {
     }
 
     let model = read_sysfs(&path, "device/model");
-    let vendor = read_sysfs(&path, "device/vendor");
     let bus = infer_bus(&path);
     let rota = read_sysfs(&path, "queue/rotational");
 
     Some(DiskInfo {
         device,
         model: model.clone(),
-        brand: brand_from_vendor_or_model(Some(vendor.as_str()), &model),
         serial: read_sysfs(&path, "device/serial"),
         size: read_size(&path),
         media_type: media_type(&rota, &bus),

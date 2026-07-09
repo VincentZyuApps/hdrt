@@ -35,7 +35,7 @@ pub fn render_report(
     }
 
     if !report.debug.is_empty() {
-        output.push(render_debug(&report.debug, format));
+        output.push(render_debug(&report.debug));
     }
 
     output.join("\n\n")
@@ -71,7 +71,7 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -
             yes_no(report.elevated, lang)
         ),
         make_table(
-            headers(
+            table_headers(
                 &[
                     "doctor.name",
                     "doctor.available",
@@ -79,7 +79,6 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -
                     "doctor.purpose",
                 ],
                 lang,
-                emoji,
             ),
             rows,
             OutputFormat::Table,
@@ -119,7 +118,7 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> S
             report.arch
         ),
         make_table(
-            headers(
+            table_headers(
                 &[
                     "bench.backend",
                     "bench.ok",
@@ -130,7 +129,6 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> S
                     "bench.note",
                 ],
                 lang,
-                emoji,
             ),
             rows,
             OutputFormat::Table,
@@ -147,7 +145,6 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji
             vec![
                 value(&disk.device, lang),
                 value(&disk.model, lang),
-                value(&disk.brand, lang),
                 value(&disk.serial, lang),
                 value(&disk.size, lang),
                 value(&disk.media_type, lang),
@@ -160,11 +157,10 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji
 
     section_with_table(
         "section.disk",
-        headers(
+        table_headers(
             &[
                 "disk.device",
                 "disk.model",
-                "disk.brand",
                 "disk.serial",
                 "disk.size",
                 "disk.kind",
@@ -173,7 +169,6 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji
                 "disk.health",
             ],
             lang,
-            emoji,
         ),
         rows,
         format,
@@ -200,7 +195,7 @@ fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang, emoj
 
     section_with_table(
         "section.memory",
-        headers(
+        table_headers(
             &[
                 "memory.slot",
                 "memory.size",
@@ -210,7 +205,6 @@ fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang, emoj
                 "memory.serial",
             ],
             lang,
-            emoji,
         ),
         rows,
         format,
@@ -236,7 +230,7 @@ fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
 
     section_with_table(
         "section.cpu",
-        headers(
+        table_headers(
             &[
                 "cpu.model",
                 "cpu.vendor",
@@ -245,7 +239,6 @@ fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
                 "cpu.frequency",
             ],
             lang,
-            emoji,
         ),
         rows,
         OutputFormat::Table,
@@ -272,7 +265,7 @@ fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> Strin
 
     section_with_table(
         "section.motherboard",
-        headers(
+        table_headers(
             &[
                 "motherboard.manufacturer",
                 "motherboard.product",
@@ -282,7 +275,6 @@ fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> Strin
                 "motherboard.bios_version",
             ],
             lang,
-            emoji,
         ),
         rows,
         OutputFormat::Table,
@@ -326,6 +318,11 @@ fn headers(keys: &[&str], lang: Lang, emoji: bool) -> Vec<String> {
     keys.iter().map(|key| label(lang, key, emoji)).collect()
 }
 
+fn table_headers(keys: &[&str], lang: Lang) -> Vec<String> {
+    // Emoji widths vary across terminals; keeping table cells plain preserves borders.
+    headers(keys, lang, false)
+}
+
 fn value(value: &str, lang: Lang) -> String {
     display_value(lang, value)
 }
@@ -345,37 +342,29 @@ fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String 
     lines.join("\n")
 }
 
-fn render_debug(records: &[crate::hardware::DebugRecord], format: OutputFormat) -> String {
-    let rows = records
-        .iter()
-        .map(|record| {
-            vec![
-                record.target.clone(),
-                record.source.clone(),
-                record
-                    .fields
-                    .iter()
-                    .map(|(key, value)| format!("{key}={value}"))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                record.note.clone().unwrap_or_default(),
-            ]
-        })
-        .collect();
+fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
+    let mut lines = vec!["Debug".to_string()];
 
-    format!(
-        "Debug\n{}",
-        make_table(
-            vec![
-                "target".to_string(),
-                "source".to_string(),
-                "fields".to_string(),
-                "note".to_string()
-            ],
-            rows,
-            format
-        )
-    )
+    for (index, record) in records.iter().enumerate() {
+        lines.push(String::new());
+        lines.push(format!("[{}] {}", index + 1, record.target));
+        lines.push(format!("  source: {}", record.source));
+
+        if let Some(note) = record.note.as_deref().filter(|note| !note.is_empty()) {
+            lines.push(format!("  note: {note}"));
+        }
+
+        if record.fields.is_empty() {
+            lines.push("  fields: none".to_string());
+        } else {
+            lines.push("  fields:".to_string());
+            for (key, value) in &record.fields {
+                lines.push(format!("    {key}: {value}"));
+            }
+        }
+    }
+
+    lines.join("\n")
 }
 
 fn label(lang: Lang, key: &str, enabled: bool) -> String {

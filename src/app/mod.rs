@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod command;
 pub mod options;
+mod help;
 mod spinner;
 
 use anyhow::Result;
@@ -17,6 +18,10 @@ use command::Command;
 use spinner::Spinner;
 
 pub fn run() -> Result<()> {
+    if help::try_print_localized_help() {
+        return Ok(());
+    }
+
     let cli = Cli::parse();
     execute(cli)
 }

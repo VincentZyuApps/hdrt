@@ -4,7 +4,7 @@
 
 > **[📖Build Doc](.github/workflows/build.md)**
 
-![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
+![hdrt](https://socialify.git.ci/VincentZyuApps/hdrt/image?custom_language=Rust&description=1&forks=1&issues=1&language=1&logo=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F250448479%3Fs%3D200%26v%3D4&name=1&owner=1&pulls=1&stargazers=1&theme=Auto&v=4)
 
 # 🖥️ hdrt
 
@@ -172,7 +172,7 @@ hdrt disk --detail smart
 显示语言：
 
 - `--lang en-us` 是默认值。
-- `--lang zh-cn` 会本地化表格、Markdown 和 TUI 标签。
+- `--lang zh-cn` 会本地化帮助、表格、Markdown 和 TUI 标签。
 - 未知显示值在英文下显示为 `【--UNKNOWN--】`，在简体中文下显示为 `【--未知--】`。
 
 详情级别：

@@ -1,6 +1,5 @@
 use serde_json::Value;
 
-use crate::collector::brand::brand_from_vendor_or_model;
 use crate::hardware::DiskInfo;
 
 use super::util::{first_known, format_bytes, value_array, value_string, value_u64};
@@ -18,10 +17,6 @@ pub fn collect(root: &Value) -> Vec<DiskInfo> {
 
                 DiskInfo {
                     device: value_string(disk, "DeviceId"),
-                    brand: brand_from_vendor_or_model(
-                        Some(&value_string(disk, "Manufacturer")),
-                        &model,
-                    ),
                     model,
                     serial: value_string(disk, "SerialNumber"),
                     size: value_u64(disk, "Size")
@@ -45,10 +40,6 @@ pub fn collect(root: &Value) -> Vec<DiskInfo> {
 
             DiskInfo {
                 device: value_string(disk, "DeviceID"),
-                brand: brand_from_vendor_or_model(
-                    Some(&value_string(disk, "Manufacturer")),
-                    &model,
-                ),
                 model,
                 serial: value_string(disk, "SerialNumber"),
                 size: value_u64(disk, "Size")
@@ -71,12 +62,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn physical_disk_brand_falls_back_to_model_prefix_for_ata_manufacturer() {
+    fn physical_disk_keeps_firmware_version() {
         let root = json!({
             "PhysicalDisks": [{
                 "DeviceId": "0",
                 "FriendlyName": "Great Wall GW560 512GB",
-                "Manufacturer": "ATA",
                 "Model": "Great Wall GW560 512GB",
                 "FirmwareVersion": "HP3618B7"
             }]
@@ -84,23 +74,6 @@ mod tests {
 
         let disks = collect(&root);
 
-        assert_eq!(disks[0].brand, "Great Wall");
         assert_eq!(disks[0].firmware, "HP3618B7");
-    }
-
-    #[test]
-    fn physical_disk_brand_uses_real_manufacturer_first() {
-        let root = json!({
-            "PhysicalDisks": [{
-                "DeviceId": "1",
-                "FriendlyName": "Ultra USB 3.0",
-                "Manufacturer": "SanDisk",
-                "Model": "Ultra USB 3.0"
-            }]
-        });
-
-        let disks = collect(&root);
-
-        assert_eq!(disks[0].brand, "SanDisk");
     }
 }

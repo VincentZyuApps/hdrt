@@ -33,11 +33,11 @@ pub struct Cli {
     #[arg(long, global = true, value_enum, default_value_t = SpinnerStyle::Unicode)]
     pub spinner_style: SpinnerStyle,
 
-    /// Enable emoji decorations in CLI output and TUI.
+    /// Enable emoji decorations in CLI output, help, and TUI.
     #[arg(short = 'e', long, global = true)]
     pub emoji: bool,
 
-    /// Display language for table, markdown, and TUI output.
+    /// Display language for help, table, markdown, and TUI output.
     #[arg(long, global = true, value_enum, default_value_t = Lang::EnUs)]
     pub lang: Lang,
 

@@ -3,7 +3,6 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use wmi::WMIConnection;
 
-use crate::collector::brand::brand_from_vendor_candidates;
 use crate::collector::CollectOptions;
 use crate::hardware::{
     unknown, CpuInfo, DebugRecord, DiskInfo, HardwareReport, HdrtWarning, MemoryDevice,
@@ -74,7 +73,7 @@ fn collect_storage_disks(
     debug: &mut Vec<DebugRecord>,
 ) -> Result<Vec<MsftPhysicalDisk>, String> {
     let storage = connect_namespace("ROOT\\Microsoft\\Windows\\Storage")?;
-    let full_query = "SELECT DeviceId, FriendlyName, Manufacturer, Model, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus FROM MSFT_PhysicalDisk";
+    let full_query = "SELECT DeviceId, FriendlyName, Model, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus FROM MSFT_PhysicalDisk";
 
     match raw_query::<MsftPhysicalDisk>(&storage, full_query) {
         Ok(rows) => {
@@ -101,7 +100,7 @@ fn collect_storage_disks(
                         .field("query", base_query)
                         .field("rows", rows.len().to_string())
                         .note(format!(
-                            "Manufacturer/Model query failed; used base query: {full_err}"
+                            "Model query failed; used base query: {full_err}"
                         )),
                 );
             }
@@ -116,7 +115,7 @@ fn collect_disk_drive_rows(
 ) -> Vec<Win32DiskDrive> {
     match raw_query::<Win32DiskDrive>(
         conn,
-        "SELECT DeviceID, Index, Model, SerialNumber, Size, MediaType, InterfaceType, FirmwareRevision, Manufacturer FROM Win32_DiskDrive",
+        "SELECT DeviceID, Index, Model, SerialNumber, Size, MediaType, InterfaceType, FirmwareRevision FROM Win32_DiskDrive",
     ) {
         Ok(rows) => rows,
         Err(err) => {
@@ -258,14 +257,6 @@ fn disk_from_storage_row(
             .map(|descriptor| descriptor.product.clone())
             .unwrap_or_else(unknown),
     ]);
-    let brand = brand_from_vendor_candidates(
-        [
-            disk.manufacturer.as_deref(),
-            win32.and_then(|disk| disk.manufacturer.as_deref()),
-            descriptor.map(|descriptor| descriptor.vendor.as_str()),
-        ],
-        &model,
-    );
     let source = joined_source(&[
         Some("native-wmi/MSFT_PhysicalDisk"),
         win32.map(|_| "native-wmi/Win32_DiskDrive"),
@@ -275,7 +266,6 @@ fn disk_from_storage_row(
     DiskInfo {
         device: known(disk.device_id.clone()),
         model,
-        brand,
         serial: first_known(&[
             known(disk.serial_number.clone()),
             win32
@@ -331,14 +321,6 @@ fn disk_from_disk_drive_row(
             .map(|descriptor| descriptor.product.clone())
             .unwrap_or_else(unknown),
     ]);
-    let brand = brand_from_vendor_candidates(
-        [
-            disk.manufacturer.as_deref(),
-            descriptor.map(|descriptor| descriptor.vendor.as_str()),
-        ],
-        &model,
-    );
-
     DiskInfo {
         device: first_known(&[
             known(disk.device_id.clone()),
@@ -347,7 +329,6 @@ fn disk_from_disk_drive_row(
                 .unwrap_or_else(unknown),
         ]),
         model,
-        brand,
         serial: first_known(&[
             known(disk.serial_number.clone()),
             descriptor
@@ -390,7 +371,6 @@ fn debug_final_disk(
                 .unwrap_or_else(unknown),
         )
         .field("model", disk.model.clone())
-        .field("brand", disk.brand.clone())
         .field("serial", disk.serial.clone())
         .field("size", disk.size.clone())
         .field("media_type", disk.media_type.clone())
@@ -689,8 +669,6 @@ struct MsftPhysicalDisk {
     device_id: Option<String>,
     #[serde(rename = "FriendlyName")]
     friendly_name: Option<String>,
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
     #[serde(rename = "Model")]
     model: Option<String>,
     #[serde(rename = "SerialNumber")]
@@ -725,8 +703,6 @@ struct Win32DiskDrive {
     interface_type: Option<String>,
     #[serde(rename = "FirmwareRevision")]
     firmware_revision: Option<String>,
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

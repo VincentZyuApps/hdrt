@@ -1,4 +1,3 @@
-mod brand;
 mod command;
 mod cpu;
 mod disk;
@@ -117,7 +116,6 @@ fn merge_disks(mut native: Vec<DiskInfo>, shell: Vec<DiskInfo>) -> Vec<DiskInfo>
 fn merge_disk(native: &mut DiskInfo, shell: DiskInfo) {
     let mut used_shell = false;
     used_shell |= fill_string(&mut native.model, shell.model);
-    used_shell |= fill_string(&mut native.brand, shell.brand);
     used_shell |= fill_string(&mut native.serial, shell.serial);
     used_shell |= fill_string(&mut native.size, shell.size);
     used_shell |= fill_string(&mut native.media_type, shell.media_type);

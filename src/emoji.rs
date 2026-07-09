@@ -40,7 +40,6 @@ pub fn icon(key: &str) -> Option<&'static str> {
         "bench.note" => Some("📝"),
         "disk.device" => Some("🔢"),
         "disk.model" => Some("🏷️"),
-        "disk.brand" => Some("🏭"),
         "disk.serial" => Some("🔐"),
         "disk.size" => Some("📦"),
         "disk.kind" => Some("💾"),

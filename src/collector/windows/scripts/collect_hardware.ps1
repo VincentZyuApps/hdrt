@@ -2,12 +2,12 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 $physicalDisks = @(
   Get-PhysicalDisk |
-    Select-Object DeviceId, FriendlyName, Manufacturer, Model, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus
+    Select-Object DeviceId, FriendlyName, Model, SerialNumber, Size, MediaType, BusType, FirmwareVersion, HealthStatus
 )
 
 $diskDrives = @(
   Get-CimInstance Win32_DiskDrive |
-    Select-Object DeviceID, Model, SerialNumber, Size, MediaType, InterfaceType, FirmwareRevision, Manufacturer
+    Select-Object DeviceID, Model, SerialNumber, Size, MediaType, InterfaceType, FirmwareRevision
 )
 
 $memory = @(

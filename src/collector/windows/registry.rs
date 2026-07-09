@@ -83,11 +83,11 @@ fn disk_from_pnp_id(index: u32, id: &str) -> DiskInfo {
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| "Unknown".to_string());
 
-    let brand = disk_component(descriptor, "Ven_");
+    let vendor = disk_component(descriptor, "Ven_");
     let product = disk_component(descriptor, "Prod_");
     let firmware = disk_component(descriptor, "Rev_");
     let model = first_known(&[
-        join_known(&brand, &product),
+        join_known(&vendor, &product),
         product.clone(),
         clean_disk_value(descriptor),
         id.to_string(),
@@ -96,7 +96,6 @@ fn disk_from_pnp_id(index: u32, id: &str) -> DiskInfo {
     DiskInfo {
         device: format!("PhysicalDrive{index}"),
         model,
-        brand,
         serial,
         bus,
         firmware,
