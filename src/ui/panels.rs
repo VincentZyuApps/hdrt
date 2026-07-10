@@ -268,6 +268,7 @@ pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &mut TuiState
                 Line::from(usage),
                 Line::from(io),
             ])
+            .style(disk_item_style(selected))
         })
         .collect::<Vec<_>>();
     frame.render_widget(
@@ -363,6 +364,7 @@ pub(super) fn draw_physical_disk_list(frame: &mut Frame, area: Rect, state: &mut
                 Line::from(identity),
                 Line::from(status),
             ])
+            .style(disk_item_style(selected))
         })
         .collect::<Vec<_>>();
     frame.render_widget(
@@ -423,6 +425,14 @@ fn disk_marker(selected: bool) -> Span<'static> {
         Span::styled("> ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
     } else {
         Span::styled("  ", Style::default().fg(Color::DarkGray))
+    }
+}
+
+fn disk_item_style(selected: bool) -> Style {
+    if selected {
+        Style::default().bg(Color::DarkGray)
+    } else {
+        Style::default()
     }
 }
 

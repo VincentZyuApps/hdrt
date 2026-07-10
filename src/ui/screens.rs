@@ -282,12 +282,7 @@ fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
         return;
     };
 
-    let title = format!(
-        "{} | R {} | W {}",
-        disk_label(disk),
-        telemetry::format_rate(disk.read_bytes_per_sec),
-        telemetry::format_rate(disk.write_bytes_per_sec)
-    );
+    let title = disk_label(disk);
     draw_io_widget(
         frame,
         area,

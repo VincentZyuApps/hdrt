@@ -337,7 +337,7 @@ pub(super) fn draw_io_widget(
             draw_sparkline(
                 frame,
                 chunks[0],
-                &format!("{title} R {}", telemetry::format_rate(read_current)),
+                &io_panel_title(title, "R", read_current),
                 read_history,
                 max_value,
                 read_color,
@@ -345,7 +345,7 @@ pub(super) fn draw_io_widget(
             draw_sparkline(
                 frame,
                 chunks[1],
-                &format!("{title} W {}", telemetry::format_rate(write_current)),
+                &io_panel_title(title, "W", write_current),
                 write_history,
                 max_value,
                 write_color,
@@ -359,19 +359,23 @@ pub(super) fn draw_io_widget(
             draw_gauge_panel(
                 frame,
                 chunks[0],
-                &format!("{title} R {}", telemetry::format_rate(read_current)),
+                &io_panel_title(title, "R", read_current),
                 read_current / max_value * 100.0,
                 read_color,
             );
             draw_gauge_panel(
                 frame,
                 chunks[1],
-                &format!("{title} W {}", telemetry::format_rate(write_current)),
+                &io_panel_title(title, "W", write_current),
                 write_current / max_value * 100.0,
                 write_color,
             );
         }
     }
+}
+
+fn io_panel_title(title: &str, label: &str, current: f64) -> String {
+    format!("{title} | {label} {}", telemetry::format_rate(current))
 }
 
 pub(super) fn draw_bar_chart(
