@@ -2,17 +2,17 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Color;
 use ratatui::Frame;
 
-use crate::app::options::ChartMode;
 use crate::hardware::{is_unknown, DiskInfo};
 use crate::i18n::t;
 use crate::telemetry;
 
-use super::panels::{draw_core_gauges, draw_disk_list, draw_memory_inventory, draw_physical_disk_list};
+use super::cpu::draw_core_gauges;
+use super::panels::{draw_disk_list, draw_memory_inventory, draw_physical_disk_list};
 use super::state::TuiState;
 use super::utils::{average_disk_used_percent, disk_label, label, MetricKind};
 use super::widgets::{
-    draw_bar_chart, draw_comparison_widget, draw_empty, draw_gauge_panel, draw_history_widget,
-    draw_io_widget, ComparisonItem,
+    draw_comparison_widget, draw_empty, draw_gauge_panel, draw_history_widget, draw_io_widget,
+    ComparisonItem,
 };
 
 pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
@@ -87,14 +87,17 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
 }
 
 pub(super) fn draw_cpu(frame: &mut Frame, area: Rect, state: &TuiState) {
+    let core_rows = ((state.latest.cpu_cores_percent.len() + 1) / 2) as u16;
+    let core_height = core_rows.saturating_add(2).max(3);
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .constraints([Constraint::Length(core_height), Constraint::Min(1)])
         .split(area);
 
+    draw_core_gauges(frame, chunks[0], state);
     draw_history_widget(
         frame,
-        chunks[0],
+        chunks[1],
         &format!(
             "{} {}",
             t(state.lang, "tui.cpu_total"),
@@ -107,28 +110,6 @@ pub(super) fn draw_cpu(frame: &mut Frame, area: Rect, state: &TuiState) {
         state.chart_mode,
         state.interval,
     );
-
-    if state.latest.cpu_cores_percent.is_empty() {
-        draw_empty(frame, chunks[1], t(state.lang, "no_data"));
-    } else if matches!(state.chart_mode, ChartMode::Gauge) {
-        draw_core_gauges(frame, chunks[1], state);
-    } else {
-        let bars = state
-            .latest
-            .cpu_cores_percent
-            .iter()
-            .enumerate()
-            .map(|(index, value)| (index.to_string(), value.round() as u64))
-            .collect::<Vec<_>>();
-        draw_bar_chart(
-            frame,
-            chunks[1],
-            t(state.lang, "tui.cpu_cores"),
-            bars,
-            100,
-            Color::Blue,
-        );
-    }
 }
 
 pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {

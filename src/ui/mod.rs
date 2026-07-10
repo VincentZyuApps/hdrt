@@ -9,6 +9,7 @@ use crate::collector::CollectOptions;
 use crate::emoji as emoji_icons;
 use crate::i18n::{t, Lang};
 
+mod cpu;
 mod panels;
 mod render;
 mod screens;

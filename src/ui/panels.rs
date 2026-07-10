@@ -177,35 +177,6 @@ pub(super) fn draw_warnings(frame: &mut Frame, area: Rect, state: &TuiState) {
     frame.render_widget(list, area);
 }
 
-pub(super) fn draw_core_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
-    let cores = &state.latest.cpu_cores_percent;
-    if cores.is_empty() {
-        draw_empty(frame, area, t(state.lang, "no_data"));
-        return;
-    }
-
-    let visible = area.height.saturating_sub(2).max(1) as usize;
-    let lines = cores
-        .iter()
-        .take(visible)
-        .enumerate()
-        .map(|(index, usage)| {
-            let filled = ((*usage / 100.0) * 20.0).round() as usize;
-            let empty = 20usize.saturating_sub(filled);
-            Line::from(vec![
-                Span::styled(format!("CPU{index:<2} "), Style::default().fg(Color::Cyan)),
-                Span::styled("█".repeat(filled), Style::default().fg(Color::Blue)),
-                Span::styled("░".repeat(empty), Style::default().fg(Color::DarkGray)),
-                Span::raw(format!(" {}", telemetry::format_percent(*usage))),
-            ])
-        })
-        .collect::<Vec<_>>();
-    frame.render_widget(
-        Paragraph::new(lines).block(Block::bordered().title(t(state.lang, "tui.cpu_cores"))),
-        area,
-    );
-}
-
 pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &mut TuiState) {
     let title = t(state.lang, "section.logical_disk");
     let visible_count = disk_list_visible_count(area);
