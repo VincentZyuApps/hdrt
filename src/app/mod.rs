@@ -2,6 +2,7 @@ pub mod cli;
 pub mod command;
 pub mod options;
 mod help;
+mod help_render;
 pub(crate) mod spinner;
 
 use anyhow::Result;

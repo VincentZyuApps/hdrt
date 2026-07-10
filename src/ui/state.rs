@@ -29,6 +29,8 @@ pub(super) struct TuiState {
     disk_histories: Vec<DiskHistory>,
     pub(super) selected_physical_disk: usize,
     pub(super) selected_disk: usize,
+    pub(super) physical_disk_scroll: usize,
+    pub(super) logical_disk_scroll: usize,
     pub(super) chart_mode: ChartMode,
     pub(super) status: String,
 }
@@ -59,6 +61,8 @@ impl TuiState {
             disk_histories: Vec::new(),
             selected_physical_disk: 0,
             selected_disk: 0,
+            physical_disk_scroll: 0,
+            logical_disk_scroll: 0,
             chart_mode: initial_chart_mode,
             status: String::new(),
         };
@@ -75,13 +79,17 @@ impl TuiState {
         self.latest = self.sampler.sample();
         if self.latest.disks.is_empty() {
             self.selected_disk = 0;
+            self.logical_disk_scroll = 0;
         } else if self.selected_disk >= self.latest.disks.len() {
             self.selected_disk = self.latest.disks.len() - 1;
+            self.logical_disk_scroll = self.logical_disk_scroll.min(self.selected_disk);
         }
         if self.report.physical_disks.is_empty() {
             self.selected_physical_disk = 0;
+            self.physical_disk_scroll = 0;
         } else if self.selected_physical_disk >= self.report.physical_disks.len() {
             self.selected_physical_disk = self.report.physical_disks.len() - 1;
+            self.physical_disk_scroll = self.physical_disk_scroll.min(self.selected_physical_disk);
         }
 
         push_history(&mut self.cpu_history, self.latest.cpu_total_percent);
@@ -158,6 +166,8 @@ impl TuiState {
         self.disk_histories.clear();
         self.selected_physical_disk = 0;
         self.selected_disk = 0;
+        self.physical_disk_scroll = 0;
+        self.logical_disk_scroll = 0;
         self.sample();
         self.status = t(self.lang, "tui.refreshed").to_string();
     }

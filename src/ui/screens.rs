@@ -199,7 +199,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
     }
 }
 
-pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &TuiState) {
+pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &mut TuiState) {
     if state.report.physical_disks.is_empty() {
         draw_empty(frame, area, t(state.lang, "no_data"));
         return;
@@ -230,7 +230,7 @@ pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &TuiState
     );
 }
 
-pub(super) fn draw_logical_disk(frame: &mut Frame, area: Rect, state: &TuiState) {
+pub(super) fn draw_logical_disk(frame: &mut Frame, area: Rect, state: &mut TuiState) {
     if state.latest.disks.is_empty() {
         draw_empty(frame, area, t(state.lang, "no_data"));
         return;

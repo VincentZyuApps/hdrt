@@ -5,7 +5,7 @@ use serde::Deserialize;
 #[cfg(windows)]
 use wmi::WMIConnection;
 
-pub const DEFAULT_INTERVAL_MS: u64 = 2_000;
+pub const DEFAULT_INTERVAL_MS: u64 = 1_000;
 pub const MIN_INTERVAL_MS: u64 = 250;
 pub const HISTORY_LIMIT: usize = 240;
 

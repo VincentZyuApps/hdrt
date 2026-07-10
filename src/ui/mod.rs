@@ -14,6 +14,7 @@ mod render;
 mod screens;
 mod state;
 mod utils;
+mod charts;
 mod widgets;
 
 use self::state::TuiState;

@@ -12,7 +12,7 @@ use super::screens::{draw_cpu, draw_logical_disk, draw_memory, draw_overview, dr
 use super::state::TuiState;
 use super::utils::tab_titles;
 
-pub(super) fn draw(frame: &mut Frame, state: &TuiState) {
+pub(super) fn draw(frame: &mut Frame, state: &mut TuiState) {
     let area = frame.area();
     if area.width < 50 || area.height < 12 {
         draw_too_small(frame, area, state.lang);

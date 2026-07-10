@@ -88,7 +88,7 @@ hdrt -e tui
 hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
-hdrt tui -t 2000
+hdrt tui -t 1000
 hdrt tui --chart-mode bar
 ```
 
@@ -167,7 +167,7 @@ hdrt tui
 hdrt tui --tab cpu
 hdrt tui --tab physical-disk --chart-mode gauge
 hdrt tui --tab logical-disk --chart-mode bar -t 1000
-hdrt tui --interval 2000
+hdrt tui --interval 1000
 ```
 
 TUI 快捷键：
@@ -180,7 +180,7 @@ TUI 快捷键：
 
 `--chart-mode` 只设置启动时的初始图表模式。启动后，`z` / `c` 会从该位置继续按同一个固定顺序循环。
 
-默认刷新间隔是 `2000` ms。低于 `250` ms 的值会被钳制到 `250` ms。
+默认刷新间隔是 `1000` ms。低于 `250` ms 的值会被钳制到 `250` ms。
 
 ## 🧾 输出格式
 

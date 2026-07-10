@@ -88,7 +88,7 @@ hdrt -e tui
 hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
-hdrt tui -t 2000
+hdrt tui -t 1000
 hdrt tui --chart-mode bar
 ```
 
@@ -167,7 +167,7 @@ hdrt tui
 hdrt tui --tab cpu
 hdrt tui --tab physical-disk --chart-mode gauge
 hdrt tui --tab logical-disk --chart-mode bar -t 1000
-hdrt tui --interval 2000
+hdrt tui --interval 1000
 ```
 
 TUI controls:
@@ -180,7 +180,7 @@ TUI controls:
 
 `--chart-mode` only sets the initial chart mode. After startup, `z` / `c` continue from that position in the same fixed cycle.
 
-The default refresh interval is `2000` ms. Values below `250` ms are clamped to `250` ms.
+The default refresh interval is `1000` ms. Values below `250` ms are clamped to `250` ms.
 
 ## 🧾 Output Formats
 

@@ -1,16 +1,16 @@
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
 use std::collections::BTreeSet;
 use wmi::WMIConnection;
 
 use crate::collector::CollectOptions;
-use crate::hardware::{
-    unknown, CpuInfo, DebugRecord, DiskInfo, HardwareReport, HdrtWarning, MemoryDevice,
-    MotherboardInfo,
-};
+use crate::hardware::{unknown, DebugRecord, DiskInfo, HardwareReport, HdrtWarning};
 
 use super::native_storage::StorageDescriptor;
 use super::util::{first_known, format_bytes};
+use self::rows::{MsftPhysicalDisk, Win32DiskDrive};
+
+mod inventory;
+mod rows;
 
 pub fn collect_report(options: CollectOptions) -> Result<HardwareReport, String> {
     let cimv2 = connect_namespace("ROOT\\CIMV2")?;
@@ -44,9 +44,9 @@ pub fn collect_report(options: CollectOptions) -> Result<HardwareReport, String>
         )
     };
 
-    let memory = collect_memory(&cimv2, &mut warnings);
-    let cpu = collect_cpu(&cimv2, &mut warnings);
-    let motherboard = collect_motherboard(&cimv2, &mut warnings);
+    let memory = inventory::collect_memory(&cimv2, &mut warnings);
+    let cpu = inventory::collect_cpu(&cimv2, &mut warnings);
+    let motherboard = inventory::collect_motherboard(&cimv2, &mut warnings);
 
     let report = HardwareReport {
         physical_disks: disks,
@@ -463,142 +463,6 @@ fn joined_source(parts: &[Option<&str>]) -> String {
     }
 }
 
-fn collect_memory(conn: &WMIConnection, warnings: &mut Vec<HdrtWarning>) -> Vec<MemoryDevice> {
-    match raw_query::<Win32PhysicalMemory>(
-        conn,
-        "SELECT BankLabel, DeviceLocator, Capacity, Speed, ConfiguredClockSpeed, Manufacturer, PartNumber, SerialNumber FROM Win32_PhysicalMemory",
-    ) {
-        Ok(rows) => rows
-            .into_iter()
-            .map(|memory| {
-                let speed = memory.configured_clock_speed.or(memory.speed);
-                MemoryDevice {
-                    slot: first_known(&[known(memory.device_locator), known(memory.bank_label)]),
-                    size: memory
-                        .capacity
-                        .map(format_bytes)
-                        .unwrap_or_else(|| "Unknown".to_string()),
-                    speed: speed
-                        .map(|value| format!("{value} MT/s"))
-                        .unwrap_or_else(|| "Unknown".to_string()),
-                    manufacturer: known(memory.manufacturer),
-                    part_number: known(memory.part_number),
-                    serial: known(memory.serial_number),
-                    source: "native-wmi/Win32_PhysicalMemory".to_string(),
-                    ..MemoryDevice::default()
-                }
-            })
-            .collect(),
-        Err(err) => {
-            warnings.push(HdrtWarning::with_hint(
-                "windows-native-wmi-memory-unavailable",
-                err,
-                "Memory module inventory is unavailable from native WMI.",
-            ));
-            Vec::new()
-        }
-    }
-}
-
-fn collect_cpu(conn: &WMIConnection, warnings: &mut Vec<HdrtWarning>) -> Option<CpuInfo> {
-    match raw_query::<Win32Processor>(
-        conn,
-        "SELECT Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed FROM Win32_Processor",
-    ) {
-        Ok(rows) => rows.into_iter().next().map(|cpu| CpuInfo {
-            model: known(cpu.name),
-            vendor: known(cpu.manufacturer),
-            physical_cores: cpu.number_of_cores.map(|value| value as usize),
-            logical_threads: cpu
-                .number_of_logical_processors
-                .map(|value| value as usize),
-            frequency: cpu
-                .max_clock_speed
-                .map(|value| format!("{value} MHz"))
-                .unwrap_or_else(|| "Unknown".to_string()),
-            source: "native-wmi/Win32_Processor".to_string(),
-            ..CpuInfo::default()
-        }),
-        Err(err) => {
-            warnings.push(HdrtWarning::with_hint(
-                "windows-native-wmi-cpu-unavailable",
-                err,
-                "CPU inventory is unavailable from native WMI.",
-            ));
-            None
-        }
-    }
-}
-
-fn collect_motherboard(
-    conn: &WMIConnection,
-    warnings: &mut Vec<HdrtWarning>,
-) -> Option<MotherboardInfo> {
-    let board = match raw_query::<Win32BaseBoard>(
-        conn,
-        "SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard",
-    ) {
-        Ok(rows) => rows.into_iter().next(),
-        Err(err) => {
-            warnings.push(HdrtWarning::with_hint(
-                "windows-native-wmi-baseboard-unavailable",
-                err,
-                "Baseboard inventory is unavailable from native WMI.",
-            ));
-            None
-        }
-    };
-
-    let bios = match raw_query::<Win32Bios>(
-        conn,
-        "SELECT Manufacturer, SMBIOSBIOSVersion, Version FROM Win32_BIOS",
-    ) {
-        Ok(rows) => rows.into_iter().next(),
-        Err(err) => {
-            warnings.push(HdrtWarning::with_hint(
-                "windows-native-wmi-bios-unavailable",
-                err,
-                "BIOS inventory is unavailable from native WMI.",
-            ));
-            None
-        }
-    };
-
-    if board.is_none() && bios.is_none() {
-        return None;
-    }
-
-    Some(MotherboardInfo {
-        manufacturer: board
-            .as_ref()
-            .map(|board| known(board.manufacturer.clone()))
-            .unwrap_or_else(|| "Unknown".to_string()),
-        product: board
-            .as_ref()
-            .map(|board| known(board.product.clone()))
-            .unwrap_or_else(|| "Unknown".to_string()),
-        version: board
-            .as_ref()
-            .map(|board| known(board.version.clone()))
-            .unwrap_or_else(|| "Unknown".to_string()),
-        serial: board
-            .as_ref()
-            .map(|board| known(board.serial_number.clone()))
-            .unwrap_or_else(|| "Unknown".to_string()),
-        bios_vendor: bios
-            .as_ref()
-            .map(|bios| known(bios.manufacturer.clone()))
-            .unwrap_or_else(|| "Unknown".to_string()),
-        bios_version: bios
-            .map(|bios| {
-                first_known(&[known(bios.smbios_bios_version), known(bios.version)])
-            })
-            .unwrap_or_else(|| "Unknown".to_string()),
-        source: "native-wmi/Win32_BaseBoard+Win32_BIOS".to_string(),
-        ..MotherboardInfo::default()
-    })
-}
-
 fn connect_namespace(namespace: &str) -> Result<WMIConnection, String> {
     WMIConnection::with_namespace_path(namespace)
         .map_err(|err| format!("failed to connect to {namespace}: {err}"))
@@ -662,102 +526,4 @@ fn health_status(value: Option<u16>) -> String {
         Some(5) | None => "Unknown".to_string(),
         Some(value) => format!("HealthStatus({value})"),
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct MsftPhysicalDisk {
-    #[serde(rename = "DeviceId")]
-    device_id: Option<String>,
-    #[serde(rename = "FriendlyName")]
-    friendly_name: Option<String>,
-    #[serde(rename = "Model")]
-    model: Option<String>,
-    #[serde(rename = "SerialNumber")]
-    serial_number: Option<String>,
-    #[serde(rename = "Size")]
-    size: Option<u64>,
-    #[serde(rename = "MediaType")]
-    media_type: Option<u16>,
-    #[serde(rename = "BusType")]
-    bus_type: Option<u16>,
-    #[serde(rename = "FirmwareVersion")]
-    firmware_version: Option<String>,
-    #[serde(rename = "HealthStatus")]
-    health_status: Option<u16>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Win32DiskDrive {
-    #[serde(rename = "DeviceID")]
-    device_id: Option<String>,
-    #[serde(rename = "Index")]
-    index: Option<u32>,
-    #[serde(rename = "Model")]
-    model: Option<String>,
-    #[serde(rename = "SerialNumber")]
-    serial_number: Option<String>,
-    #[serde(rename = "Size")]
-    size: Option<u64>,
-    #[serde(rename = "MediaType")]
-    media_type: Option<String>,
-    #[serde(rename = "InterfaceType")]
-    interface_type: Option<String>,
-    #[serde(rename = "FirmwareRevision")]
-    firmware_revision: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Win32PhysicalMemory {
-    #[serde(rename = "BankLabel")]
-    bank_label: Option<String>,
-    #[serde(rename = "DeviceLocator")]
-    device_locator: Option<String>,
-    #[serde(rename = "Capacity")]
-    capacity: Option<u64>,
-    #[serde(rename = "Speed")]
-    speed: Option<u32>,
-    #[serde(rename = "ConfiguredClockSpeed")]
-    configured_clock_speed: Option<u32>,
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
-    #[serde(rename = "PartNumber")]
-    part_number: Option<String>,
-    #[serde(rename = "SerialNumber")]
-    serial_number: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Win32Processor {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
-    #[serde(rename = "NumberOfCores")]
-    number_of_cores: Option<u32>,
-    #[serde(rename = "NumberOfLogicalProcessors")]
-    number_of_logical_processors: Option<u32>,
-    #[serde(rename = "MaxClockSpeed")]
-    max_clock_speed: Option<u32>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Win32BaseBoard {
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
-    #[serde(rename = "Product")]
-    product: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<String>,
-    #[serde(rename = "SerialNumber")]
-    serial_number: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Win32Bios {
-    #[serde(rename = "Manufacturer")]
-    manufacturer: Option<String>,
-    #[serde(rename = "SMBIOSBIOSVersion")]
-    smbios_bios_version: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<String>,
 }
