@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use super::{CpuInfo, DebugRecord, DiskInfo, HdrtWarning, MemoryDevice, MotherboardInfo};
+use super::{
+    CpuInfo, DebugRecord, DiskInfo, HdrtWarning, LogicalDiskInfo, MemoryDevice, MotherboardInfo,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Section {
     Disk,
+    PhysicalDisk,
+    LogicalDisk,
     Memory,
     Cpu,
     Motherboard,
@@ -13,7 +17,8 @@ pub enum Section {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HardwareReport {
-    pub disks: Vec<DiskInfo>,
+    pub physical_disks: Vec<DiskInfo>,
+    pub logical_disks: Vec<LogicalDiskInfo>,
     pub memory: Vec<MemoryDevice>,
     pub cpu: Option<CpuInfo>,
     pub motherboard: Option<MotherboardInfo>,

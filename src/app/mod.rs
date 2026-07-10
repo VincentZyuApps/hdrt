@@ -31,14 +31,21 @@ fn execute(cli: Cli) -> Result<()> {
 
     match command {
         Command::Disk => print_section(&cli, Section::Disk),
+        Command::PhysicalDisk => print_section(&cli, Section::PhysicalDisk),
+        Command::LogicalDisk => print_section(&cli, Section::LogicalDisk),
         Command::Memory => print_section(&cli, Section::Memory),
         Command::Cpu => print_section(&cli, Section::Cpu),
         Command::Motherboard => print_section(&cli, Section::Motherboard),
         Command::All => print_section(&cli, Section::All),
         Command::Doctor => print_doctor(&cli),
         Command::Bench => print_benchmarks(&cli),
-        Command::Tui { tab, interval } => ui::run(
+        Command::Tui {
             tab,
+            chart_mode,
+            interval,
+        } => ui::run(
+            tab,
+            chart_mode,
             cli.lang,
             cli.emoji,
             CollectOptions {

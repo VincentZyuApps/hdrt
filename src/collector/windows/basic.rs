@@ -1,4 +1,4 @@
-use sysinfo::{Disks, System};
+use sysinfo::System;
 
 use crate::hardware::{CpuInfo, DiskInfo, HardwareReport, MemoryDevice, MotherboardInfo};
 
@@ -9,7 +9,8 @@ pub fn collect_report() -> HardwareReport {
     system.refresh_all();
 
     HardwareReport {
-        disks: collect_disks(),
+        physical_disks: collect_disks(),
+        logical_disks: Vec::new(),
         memory: collect_memory(&system),
         cpu: collect_cpu(&system),
         motherboard: collect_motherboard(),
@@ -19,34 +20,7 @@ pub fn collect_report() -> HardwareReport {
 }
 
 fn collect_disks() -> Vec<DiskInfo> {
-    let mut disks = super::registry::physical_disks();
-    let logical_disks = collect_logical_disks();
-
-    if disks.is_empty() {
-        logical_disks
-    } else {
-        disks.extend(logical_disks);
-        disks
-    }
-}
-
-fn collect_logical_disks() -> Vec<DiskInfo> {
-    Disks::new_with_refreshed_list()
-        .iter()
-        .map(|disk| {
-            let name = disk.name().to_string_lossy().to_string();
-            let mount = disk.mount_point().to_string_lossy().to_string();
-
-            DiskInfo {
-                device: first_known(&[mount.clone(), name.clone()]),
-                model: first_known(&[name, mount]),
-                size: format_bytes(disk.total_space()),
-                media_type: "Logical".to_string(),
-                source: "sysinfo/logical-volume".to_string(),
-                ..DiskInfo::default()
-            }
-        })
-        .collect()
+    super::registry::physical_disks()
 }
 
 fn collect_memory(system: &System) -> Vec<MemoryDevice> {

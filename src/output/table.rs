@@ -16,8 +16,20 @@ pub fn render_report(
 ) -> String {
     let mut output = Vec::new();
 
-    if matches!(section, Section::Disk | Section::All) {
-        output.push(render_disks(report, format, lang, emoji));
+    if matches!(section, Section::Disk) {
+        output.push(render_disk_hint(lang));
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::PhysicalDisk | Section::All
+    ) {
+        output.push(render_physical_disks(report, format, lang, emoji));
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::LogicalDisk | Section::All
+    ) {
+        output.push(render_logical_disks(report, format, lang, emoji));
     }
     if matches!(section, Section::Memory | Section::All) {
         output.push(render_memory(report, format, lang, emoji));
@@ -137,9 +149,18 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> S
     .join("\n")
 }
 
-fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji: bool) -> String {
+fn render_disk_hint(lang: Lang) -> String {
+    t(lang, "disk.combined_hint").to_string()
+}
+
+fn render_physical_disks(
+    report: &HardwareReport,
+    format: OutputFormat,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
-        .disks
+        .physical_disks
         .iter()
         .map(|disk| {
             vec![
@@ -156,7 +177,7 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji
         .collect();
 
     section_with_table(
-        "section.disk",
+        "section.physical_disk",
         table_headers(
             &[
                 "disk.device",
@@ -167,6 +188,51 @@ fn render_disks(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji
                 "disk.bus",
                 "disk.firmware",
                 "disk.health",
+            ],
+            lang,
+        ),
+        rows,
+        format,
+        lang,
+        emoji,
+    )
+}
+
+fn render_logical_disks(
+    report: &HardwareReport,
+    format: OutputFormat,
+    lang: Lang,
+    emoji: bool,
+) -> String {
+    let rows: Vec<Vec<String>> = report
+        .logical_disks
+        .iter()
+        .map(|disk| {
+            vec![
+                value(&disk.device, lang),
+                value(&disk.mount_point, lang),
+                value(&disk.file_system, lang),
+                value(&disk.total, lang),
+                value(&disk.used, lang),
+                value(&disk.available, lang),
+                format!("{:.1}%", disk.used_percent),
+                value(&disk.source, lang),
+            ]
+        })
+        .collect();
+
+    section_with_table(
+        "section.logical_disk",
+        table_headers(
+            &[
+                "disk.device",
+                "disk.mount",
+                "disk.filesystem",
+                "disk.size",
+                "disk.used",
+                "disk.available",
+                "disk.used_percent",
+                "disk.source",
             ],
             lang,
         ),
@@ -374,8 +440,27 @@ fn label(lang: Lang, key: &str, enabled: bool) -> String {
 fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {
     let mut warnings = report.warnings.clone();
 
-    if matches!(section, Section::Disk | Section::All) {
-        warnings.extend(report.disks.iter().flat_map(|item| item.warnings.clone()));
+    if matches!(
+        section,
+        Section::Disk | Section::PhysicalDisk | Section::All
+    ) {
+        warnings.extend(
+            report
+                .physical_disks
+                .iter()
+                .flat_map(|item| item.warnings.clone()),
+        );
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::LogicalDisk | Section::All
+    ) {
+        warnings.extend(
+            report
+                .logical_disks
+                .iter()
+                .flat_map(|item| item.warnings.clone()),
+        );
     }
     if matches!(section, Section::Memory | Section::All) {
         warnings.extend(report.memory.iter().flat_map(|item| item.warnings.clone()));

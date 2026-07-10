@@ -2,14 +2,17 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Color;
 use ratatui::Frame;
 
+use crate::app::options::ChartMode;
+use crate::hardware::{is_unknown, DiskInfo};
 use crate::i18n::t;
 use crate::telemetry;
 
-use super::panels::{draw_core_gauges, draw_disk_list, draw_memory_inventory};
-use super::state::{ChartMode, TuiState};
+use super::panels::{draw_core_gauges, draw_disk_list, draw_memory_inventory, draw_physical_disk_list};
+use super::state::TuiState;
 use super::utils::{average_disk_used_percent, disk_label, label, MetricKind};
 use super::widgets::{
-    draw_bar_chart, draw_empty, draw_gauge_panel, draw_history_widget, draw_io_widget,
+    draw_bar_chart, draw_comparison_widget, draw_empty, draw_gauge_panel, draw_history_widget,
+    draw_io_widget, ComparisonItem,
 };
 
 pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
@@ -196,43 +199,96 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
     }
 }
 
-pub(super) fn draw_disk(frame: &mut Frame, area: Rect, state: &TuiState) {
+pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &TuiState) {
+    if state.report.physical_disks.is_empty() {
+        draw_empty(frame, area, t(state.lang, "no_data"));
+        return;
+    }
+
+    let page = disk_page_layout(area);
+    draw_selected_physical_disk_gauge(frame, page[0], state);
+    let chunks = disk_body_chunks(page[1]);
+    draw_physical_disk_list(frame, chunks[0], state);
+    let items = state
+        .report
+        .physical_disks
+        .iter()
+        .map(|disk| ComparisonItem {
+            label: physical_disk_name(disk),
+            value: parse_size_bytes(&disk.size).unwrap_or_default(),
+            display: disk.size.clone(),
+        })
+        .collect::<Vec<_>>();
+    draw_comparison_widget(
+        frame,
+        chunks[1],
+        t(state.lang, "section.physical_disk"),
+        &items,
+        None,
+        state.chart_mode,
+        Color::Cyan,
+    );
+}
+
+pub(super) fn draw_logical_disk(frame: &mut Frame, area: Rect, state: &TuiState) {
     if state.latest.disks.is_empty() {
         draw_empty(frame, area, t(state.lang, "no_data"));
         return;
     }
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(1)])
-        .split(area);
+    let page = disk_page_layout(area);
+    draw_selected_logical_disk_gauge(frame, page[0], state);
+    let chunks = disk_body_chunks(page[1]);
+    draw_disk_list(frame, chunks[0], state);
+    draw_selected_disk_io(frame, chunks[1], state);
+}
 
-    if let Some(disk) = state.selected_disk() {
-        draw_gauge_panel(
-            frame,
-            chunks[0],
-            &format!(
-                "{} {} {}/{}",
-                t(state.lang, "tui.disk_used"),
-                disk_label(disk),
-                telemetry::format_bytes(disk.used_bytes),
-                telemetry::format_bytes(disk.total_bytes)
-            ),
-            disk.used_percent,
-            Color::Green,
-        );
-    }
+fn draw_selected_physical_disk_gauge(frame: &mut Frame, area: Rect, state: &TuiState) {
+    let selected = state
+        .report
+        .physical_disks
+        .get(state.selected_physical_disk)
+        .unwrap_or(&state.report.physical_disks[0]);
+    let selected_size = parse_size_bytes(&selected.size).unwrap_or_default();
+    let max_size = state
+        .report
+        .physical_disks
+        .iter()
+        .filter_map(|disk| parse_size_bytes(&disk.size))
+        .fold(0.0, f64::max)
+        .max(1.0);
+    draw_gauge_panel(
+        frame,
+        area,
+        &format!(
+            "{} {} {}",
+            t(state.lang, "section.physical_disk"),
+            physical_disk_name(selected),
+            selected.size
+        ),
+        selected_size / max_size * 100.0,
+        Color::Cyan,
+    );
+}
 
-    if chunks[1].width >= 100 {
-        let body = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(34), Constraint::Min(40)])
-            .split(chunks[1]);
-        draw_disk_list(frame, body[0], state);
-        draw_selected_disk_io(frame, body[1], state);
-    } else {
-        draw_selected_disk_io(frame, chunks[1], state);
-    }
+fn draw_selected_logical_disk_gauge(frame: &mut Frame, area: Rect, state: &TuiState) {
+    let Some(disk) = state.selected_disk() else {
+        draw_empty(frame, area, t(state.lang, "no_data"));
+        return;
+    };
+    draw_gauge_panel(
+        frame,
+        area,
+        &format!(
+            "{} {} {}/{}",
+            t(state.lang, "tui.disk_used"),
+            disk_label(disk),
+            telemetry::format_bytes(disk.used_bytes),
+            telemetry::format_bytes(disk.total_bytes)
+        ),
+        disk.used_percent,
+        Color::Green,
+    );
 }
 
 fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
@@ -246,12 +302,10 @@ fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
     };
 
     let title = format!(
-        "{} | R {} | W {} | {} {}",
+        "{} | R {} | W {}",
         disk_label(disk),
         telemetry::format_rate(disk.read_bytes_per_sec),
-        telemetry::format_rate(disk.write_bytes_per_sec),
-        t(state.lang, "tui.disk_used"),
-        telemetry::format_percent(disk.used_percent)
+        telemetry::format_rate(disk.write_bytes_per_sec)
     );
     draw_io_widget(
         frame,
@@ -312,4 +366,62 @@ fn draw_summary_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
         average_disk_used_percent(&state.latest.disks),
         Color::Green,
     );
+}
+
+fn disk_page_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(4), Constraint::Min(1)])
+        .split(area)
+        .to_vec()
+}
+
+fn disk_body_chunks(area: Rect) -> Vec<Rect> {
+    if area.width >= 90 {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Ratio(618, 1618), Constraint::Ratio(1000, 1618)])
+            .split(area)
+            .to_vec()
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
+            .split(area)
+            .to_vec()
+    }
+}
+
+fn physical_disk_name(disk: &DiskInfo) -> String {
+    if is_unknown(&disk.model) {
+        disk.device.clone()
+    } else {
+        disk.model.clone()
+    }
+}
+
+fn parse_size_bytes(value: &str) -> Option<f64> {
+    let value = value.trim();
+    if value.is_empty() || value.eq_ignore_ascii_case(crate::hardware::UNKNOWN) {
+        return None;
+    }
+
+    let number = value
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
+        .collect::<String>();
+    let amount = number.parse::<f64>().ok()?;
+    let unit = value[number.len()..].trim().to_ascii_lowercase();
+    let multiplier = if unit.starts_with("t") {
+        1024.0_f64.powi(4)
+    } else if unit.starts_with("g") {
+        1024.0_f64.powi(3)
+    } else if unit.starts_with("m") {
+        1024.0_f64.powi(2)
+    } else if unit.starts_with("k") {
+        1024.0
+    } else {
+        1.0
+    };
+    Some(amount * multiplier)
 }

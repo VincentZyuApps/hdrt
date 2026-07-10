@@ -15,6 +15,8 @@ pub fn icon(key: &str) -> Option<&'static str> {
         "section.all" => Some("🖥️"),
         "section.overview" => Some("🏠"),
         "section.disk" => Some("💽"),
+        "section.physical_disk" => Some("💽"),
+        "section.logical_disk" => Some("🗂️"),
         "section.memory" => Some("🧠"),
         "section.cpu" => Some("🧩"),
         "section.motherboard" => Some("🧱"),

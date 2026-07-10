@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::app::options::{SpinnerStyle, TuiTab};
+use crate::app::options::{ChartMode, SpinnerStyle, TuiTab};
 use crate::app::spinner::Spinner;
 use crate::collector::CollectOptions;
 use crate::emoji as emoji_icons;
@@ -20,6 +20,7 @@ use self::state::TuiState;
 
 pub fn run(
     initial_tab: TuiTab,
+    initial_chart_mode: ChartMode,
     lang: Lang,
     emoji: bool,
     options: CollectOptions,
@@ -32,7 +33,14 @@ pub fn run(
         spinner_style,
         emoji_icons::decorate(emoji, "spinner.tui", t(lang, "spinner.tui")),
     );
-    let mut state = TuiState::new(initial_tab, lang, emoji, options, interval_ms);
+    let mut state = TuiState::new(
+        initial_tab,
+        lang,
+        emoji,
+        options,
+        interval_ms,
+        initial_chart_mode,
+    );
     loading.finish();
 
     let mut terminal = ratatui::init();

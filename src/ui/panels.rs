@@ -4,6 +4,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 
+use crate::hardware::DiskInfo;
 use crate::i18n::{display_value, t};
 use crate::telemetry;
 
@@ -106,10 +107,10 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
     )));
     lines.push(Line::from(""));
 
-    if state.report.disks.is_empty() {
+    if state.report.physical_disks.is_empty() {
         lines.push(Line::from(t(state.lang, "no_data")));
     } else {
-        for disk in &state.report.disks {
+        for disk in &state.report.physical_disks {
             lines.push(Line::from(vec![
                 Span::styled(
                     display_value(state.lang, &disk.device),
@@ -219,21 +220,103 @@ pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &TuiState) {
             } else {
                 Style::default()
             };
-            ListItem::new(Line::from(Span::styled(
-                format!(
-                    "{} {:>5} {}",
-                    if selected { ">" } else { " " },
-                    telemetry::format_percent(disk.used_percent),
-                    disk_label(disk)
-                ),
-                style,
-            )))
+            ListItem::new(vec![
+                Line::from(Span::styled(
+                    format!("{} {}", if selected { ">" } else { " " }, disk_label(disk)),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!(
+                        "  {} / {} | {}",
+                        telemetry::format_bytes(disk.used_bytes),
+                        telemetry::format_bytes(disk.total_bytes),
+                        telemetry::format_percent(disk.used_percent)
+                    ),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!(
+                        "  {} | free {}",
+                        disk.file_system,
+                        telemetry::format_bytes(disk.available_bytes)
+                    ),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!(
+                        "  R {} | W {}",
+                        telemetry::format_rate(disk.read_bytes_per_sec),
+                        telemetry::format_rate(disk.write_bytes_per_sec)
+                    ),
+                    style,
+                )),
+            ])
         })
         .collect::<Vec<_>>();
     frame.render_widget(
-        List::new(items).block(Block::bordered().title(t(state.lang, "section.disk"))),
+        List::new(items).block(Block::bordered().title(t(state.lang, "section.logical_disk"))),
         area,
     );
+}
+
+pub(super) fn draw_physical_disk_list(frame: &mut Frame, area: Rect, state: &TuiState) {
+    let items = state
+        .report
+        .physical_disks
+        .iter()
+        .enumerate()
+        .map(|(index, disk)| {
+            let selected = index == state.selected_physical_disk;
+            let style = if selected {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            ListItem::new(vec![
+                Line::from(Span::styled(
+                    format!("{} {}", if selected { ">" } else { " " }, physical_disk_name(disk)),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!("  {}", display_value(state.lang, &disk.device)),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!(
+                        "  {} | {} | {}",
+                        display_value(state.lang, &disk.size),
+                        display_value(state.lang, &disk.media_type),
+                        display_value(state.lang, &disk.bus)
+                    ),
+                    style,
+                )),
+                Line::from(Span::styled(
+                    format!(
+                        "  {} | FW {}",
+                        display_value(state.lang, &disk.health),
+                        display_value(state.lang, &disk.firmware)
+                    ),
+                    style,
+                )),
+            ])
+        })
+        .collect::<Vec<_>>();
+    frame.render_widget(
+        List::new(items).block(Block::bordered().title(t(state.lang, "section.physical_disk"))),
+        area,
+    );
+}
+
+fn physical_disk_name(disk: &DiskInfo) -> String {
+    let model = disk.model.trim();
+    if model.is_empty() || model == crate::hardware::UNKNOWN {
+        disk.device.clone()
+    } else {
+        model.to_string()
+    }
 }
 
 pub(super) fn draw_memory_inventory(frame: &mut Frame, area: Rect, state: &TuiState) {

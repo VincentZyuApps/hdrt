@@ -1,12 +1,18 @@
 use clap::Subcommand;
 
-use super::options::TuiTab;
+use super::options::{ChartMode, TuiTab};
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
-    /// Show physical disk information.
+    /// Show physical and logical disk information.
     #[command(visible_alias = "d")]
     Disk,
+    /// Show physical disk information.
+    #[command(visible_alias = "pd")]
+    PhysicalDisk,
+    /// Show logical disk information.
+    #[command(visible_alias = "ld")]
+    LogicalDisk,
     /// Show memory module information.
     #[command(visible_aliases = ["m", "mem"])]
     Memory,
@@ -27,6 +33,9 @@ pub enum Command {
     Tui {
         #[arg(long, value_enum, default_value_t = TuiTab::Overview)]
         tab: TuiTab,
+        /// Initial TUI chart mode.
+        #[arg(long, value_enum, default_value_t = ChartMode::Gauge)]
+        chart_mode: ChartMode,
         /// TUI refresh interval in milliseconds.
         #[arg(short = 't', long, default_value_t = crate::telemetry::DEFAULT_INTERVAL_MS)]
         interval: u64,

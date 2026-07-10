@@ -2,17 +2,17 @@ use crate::app::options::DetailLevel;
 use crate::hardware::{is_unknown, unknown, DiskInfo, HdrtWarning};
 
 use super::command::{
-    format_bytes, non_empty_or_unknown, parse_key_values, run_shell_script,
-    run_shell_script_with_args, value_or_unknown,
+    non_empty_or_unknown, parse_key_values, run_shell_script, run_shell_script_with_args,
+    value_or_unknown,
 };
 
 pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
     let output = run_shell_script(include_str!("scripts/collect_disks.sh"));
 
     let Ok(output) = output else {
-        return collect_df_logical_disks_with_warning(
+        return unavailable_physical_disk(
             "lsblk-unavailable",
-            "Could not run lsblk to collect physical disk inventory; using df logical volumes.",
+            "Could not run lsblk to collect physical disk inventory.",
             "Install util-linux for model, serial, bus, and firmware fields.",
         );
     };
@@ -41,9 +41,9 @@ pub(super) fn collect(detail: DetailLevel) -> Vec<DiskInfo> {
         .collect();
 
     if disks.is_empty() {
-        return collect_df_logical_disks_with_warning(
+        return unavailable_physical_disk(
             "lsblk-empty",
-            "lsblk returned no parseable physical disk rows; using df logical volumes.",
+            "lsblk returned no parseable physical disk rows.",
             "Check lsblk output support with: lsblk -d -P -o NAME,MODEL,SERIAL,SIZE,ROTA,TYPE,TRAN,REV.",
         );
     }
@@ -65,58 +65,11 @@ fn media_type(rota: &str, bus: &str) -> String {
     }
 }
 
-fn collect_df_logical_disks() -> Vec<DiskInfo> {
-    match run_shell_script(include_str!("scripts/collect_logical_disks.sh")) {
-        Ok(output) => parse_df_logical_disks(&output),
-        Err(_) => Vec::new(),
-    }
-}
-
-fn collect_df_logical_disks_with_warning(code: &str, message: &str, hint: &str) -> Vec<DiskInfo> {
-    let mut disks = collect_df_logical_disks();
-    if disks.is_empty() {
-        return vec![DiskInfo {
-            warnings: vec![HdrtWarning::with_hint(
-                "linux-disk-inventory-unavailable",
-                "Could not run lsblk or df to collect disk inventory.",
-                "Install util-linux or coreutils and run hdrt again.",
-            )],
-            ..DiskInfo::default()
-        }];
-    }
-
-    for disk in &mut disks {
-        disk.warnings
-            .push(HdrtWarning::with_hint(code, message, hint));
-    }
-
-    disks
-}
-
-fn parse_df_logical_disks(output: &str) -> Vec<DiskInfo> {
-    output
-        .lines()
-        .skip(1)
-        .filter_map(|line| {
-            let fields: Vec<&str> = line.split_whitespace().collect();
-            if fields.len() < 6 {
-                return None;
-            }
-
-            let filesystem = fields[0];
-            let blocks_kib = fields.get(1)?.parse::<u64>().ok()?;
-            let mount = fields[5];
-
-            Some(DiskInfo {
-                device: mount.to_string(),
-                model: filesystem.to_string(),
-                size: format_bytes(blocks_kib * 1024),
-                media_type: "Logical".to_string(),
-                source: "df".to_string(),
-                ..DiskInfo::default()
-            })
-        })
-        .collect()
+fn unavailable_physical_disk(code: &str, message: &str, hint: &str) -> Vec<DiskInfo> {
+    vec![DiskInfo {
+        warnings: vec![HdrtWarning::with_hint(code, message, hint)],
+        ..DiskInfo::default()
+    }]
 }
 
 fn enrich_with_smartctl(disks: &mut [DiskInfo], detail: DetailLevel) {

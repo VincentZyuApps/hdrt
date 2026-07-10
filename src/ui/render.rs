@@ -4,10 +4,11 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
 use ratatui::Frame;
 
+use crate::emoji;
 use crate::i18n::{t, Lang};
 
-use super::panels::{draw_health, draw_motherboard, draw_warnings};
-use super::screens::{draw_cpu, draw_disk, draw_memory, draw_overview};
+use super::panels::{draw_motherboard, draw_warnings};
+use super::screens::{draw_cpu, draw_logical_disk, draw_memory, draw_overview, draw_physical_disk};
 use super::state::TuiState;
 use super::utils::tab_titles;
 
@@ -31,11 +32,11 @@ pub(super) fn draw(frame: &mut Frame, state: &TuiState) {
 
     match state.tab {
         0 => draw_overview(frame, chunks[1], state),
-        1 => draw_disk(frame, chunks[1], state),
-        2 => draw_memory(frame, chunks[1], state),
-        3 => draw_cpu(frame, chunks[1], state),
-        4 => draw_motherboard(frame, chunks[1], state),
-        5 => draw_health(frame, chunks[1], state),
+        1 => draw_physical_disk(frame, chunks[1], state),
+        2 => draw_logical_disk(frame, chunks[1], state),
+        3 => draw_memory(frame, chunks[1], state),
+        4 => draw_cpu(frame, chunks[1], state),
+        5 => draw_motherboard(frame, chunks[1], state),
         6 => draw_warnings(frame, chunks[1], state),
         _ => {}
     }
@@ -45,9 +46,17 @@ pub(super) fn draw(frame: &mut Frame, state: &TuiState) {
 
 fn draw_tabs(frame: &mut Frame, area: Rect, state: &TuiState) {
     let titles = tab_titles(state.lang, state.emoji);
+    let title = format!(
+        "{}  {}: {} | {}: {} ms",
+        emoji::decorate(state.emoji, "app.title", "hdrt"),
+        t(state.lang, "tui.chart_mode"),
+        state.chart_mode.label(state.lang),
+        t(state.lang, "tui.interval"),
+        state.interval.as_millis()
+    );
     let tabs = Tabs::new(titles.iter().cloned())
         .select(state.tab)
-        .block(Block::bordered())
+        .block(Block::bordered().title(title))
         .style(Style::default().fg(Color::Gray))
         .highlight_style(
             Style::default()

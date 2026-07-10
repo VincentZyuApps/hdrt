@@ -10,7 +10,7 @@ pub mod warning;
 pub use capability::{CapabilityReport, ToolStatus};
 pub use cpu::CpuInfo;
 pub use debug::DebugRecord;
-pub use disk::DiskInfo;
+pub use disk::{DiskInfo, LogicalDiskInfo};
 pub use memory::MemoryDevice;
 pub use motherboard::MotherboardInfo;
 pub use report::{HardwareReport, Section};

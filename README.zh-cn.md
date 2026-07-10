@@ -73,6 +73,8 @@ hdrt doctor
 
 ```bash
 hdrt disk
+hdrt physical-disk
+hdrt logical-disk
 hdrt memory
 hdrt cpu
 hdrt motherboard
@@ -87,11 +89,14 @@ hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
 hdrt tui -t 2000
+hdrt tui --chart-mode bar
 ```
 
 别名：
 
-- `hdrt d` 对应 `hdrt disk`
+- `hdrt d` 对应 `hdrt disk`，会同时显示物理磁盘和逻辑磁盘
+- `hdrt pd` 对应 `hdrt physical-disk`
+- `hdrt ld` 对应 `hdrt logical-disk`
 - `hdrt m` 和 `hdrt mem` 对应 `hdrt memory`
 - `hdrt c` 对应 `hdrt cpu`
 - `hdrt b` 和 `hdrt mb` 对应 `hdrt motherboard`
@@ -111,7 +116,7 @@ hdrt tui -t 2000
 
 ```bash
 hdrt --backend auto all
-hdrt --backend native disk
+hdrt --backend native physical-disk
 hdrt --backend shell memory
 hdrt bench
 ```
@@ -160,17 +165,20 @@ Spinner 样式：
 ```bash
 hdrt tui
 hdrt tui --tab cpu
-hdrt tui --tab disk -t 1000
+hdrt tui --tab physical-disk --chart-mode gauge
+hdrt tui --tab logical-disk --chart-mode bar -t 1000
 hdrt tui --interval 2000
 ```
 
 TUI 快捷键：
 
 - `Tab` / `Left` / `Right` / `WASD`：切换标签页。
-- `z` / `c`：全局切换折线图、散点图、柱状图、火花图和仪表条。
-- `j` / `k`：在磁盘页选择磁盘。
+- `z` / `c`：按固定顺序全局切换图表模式：仪表、条形、火花、折线、散点。
+- `j` / `k`：在物理磁盘 / 逻辑磁盘页选择磁盘。
 - `r`：刷新静态硬件清单并重置实时采样。
 - `q` / `Esc`：退出。
+
+`--chart-mode` 只设置启动时的初始图表模式。启动后，`z` / `c` 会从该位置继续按同一个固定顺序循环。
 
 默认刷新间隔是 `2000` ms。低于 `250` ms 的值会被钳制到 `250` ms。
 
@@ -182,8 +190,10 @@ hdrt disk --format wide
 hdrt disk --format compact
 hdrt disk --format json
 hdrt disk --format markdown
+hdrt physical-disk --format table
+hdrt logical-disk --format table
 hdrt all --lang zh-cn
-hdrt disk --detail smart
+hdrt physical-disk --detail smart
 ```
 
 表格样式：
@@ -221,9 +231,9 @@ hdrt disk --detail smart
 ```bash
 hdrt doctor
 hdrt bench
-hdrt --backend native disk
-hdrt --backend shell disk --detail smart
-sudo hdrt disk --detail smart
+hdrt --backend native physical-disk
+hdrt --backend shell physical-disk --detail smart
+sudo hdrt physical-disk --detail smart
 sudo hdrt memory
 ```
 

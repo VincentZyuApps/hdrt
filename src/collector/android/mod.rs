@@ -9,7 +9,8 @@ use crate::hardware::{HardwareReport, HdrtWarning};
 
 pub fn collect_report(_options: CollectOptions) -> HardwareReport {
     let mut report = HardwareReport {
-        disks: disk::collect(),
+        physical_disks: Vec::new(),
+        logical_disks: Vec::new(),
         memory: memory::collect(),
         cpu: cpu::collect(),
         motherboard: motherboard::collect(),

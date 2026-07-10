@@ -73,6 +73,8 @@ hdrt doctor
 
 ```bash
 hdrt disk
+hdrt physical-disk
+hdrt logical-disk
 hdrt memory
 hdrt cpu
 hdrt motherboard
@@ -87,11 +89,14 @@ hdrt --no-spinner all
 hdrt --spinner-style ascii bench
 hdrt tui
 hdrt tui -t 2000
+hdrt tui --chart-mode bar
 ```
 
 Aliases:
 
-- `hdrt d` for `hdrt disk`
+- `hdrt d` for `hdrt disk`, which shows both physical and logical disks
+- `hdrt pd` for `hdrt physical-disk`
+- `hdrt ld` for `hdrt logical-disk`
 - `hdrt m` and `hdrt mem` for `hdrt memory`
 - `hdrt c` for `hdrt cpu`
 - `hdrt b` and `hdrt mb` for `hdrt motherboard`
@@ -111,7 +116,7 @@ Examples:
 
 ```bash
 hdrt --backend auto all
-hdrt --backend native disk
+hdrt --backend native physical-disk
 hdrt --backend shell memory
 hdrt bench
 ```
@@ -160,17 +165,20 @@ Spinner styles:
 ```bash
 hdrt tui
 hdrt tui --tab cpu
-hdrt tui --tab disk -t 1000
+hdrt tui --tab physical-disk --chart-mode gauge
+hdrt tui --tab logical-disk --chart-mode bar -t 1000
 hdrt tui --interval 2000
 ```
 
 TUI controls:
 
 - `Tab` / `Left` / `Right` / `WASD`: switch tabs.
-- `z` / `c`: switch the global chart style between line, scatter, bar, sparkline, and gauge.
-- `j` / `k`: select disks in the disk tab.
+- `z` / `c`: switch the global chart style in this fixed cycle: gauge, bar, sparkline, line, scatter.
+- `j` / `k`: select disks in the physical/logical disk tabs.
 - `r`: refresh the static hardware inventory and reset live samples.
 - `q` / `Esc`: quit.
+
+`--chart-mode` only sets the initial chart mode. After startup, `z` / `c` continue from that position in the same fixed cycle.
 
 The default refresh interval is `2000` ms. Values below `250` ms are clamped to `250` ms.
 
@@ -182,8 +190,10 @@ hdrt disk --format wide
 hdrt disk --format compact
 hdrt disk --format json
 hdrt disk --format markdown
+hdrt physical-disk --format table
+hdrt logical-disk --format table
 hdrt all --lang zh-cn
-hdrt disk --detail smart
+hdrt physical-disk --detail smart
 ```
 
 Table styles:
@@ -221,9 +231,9 @@ Recommended checks:
 ```bash
 hdrt doctor
 hdrt bench
-hdrt --backend native disk
-hdrt --backend shell disk --detail smart
-sudo hdrt disk --detail smart
+hdrt --backend native physical-disk
+hdrt --backend shell physical-disk --detail smart
+sudo hdrt physical-disk --detail smart
 sudo hdrt memory
 ```
 

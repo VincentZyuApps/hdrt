@@ -8,7 +8,8 @@ pub fn collect_report() -> Result<HardwareReport, String> {
     let root = run_json()?;
 
     Ok(HardwareReport {
-        disks: super::disk::collect(&root),
+        physical_disks: super::disk::collect(&root),
+        logical_disks: Vec::new(),
         memory: super::memory::collect(&root),
         cpu: super::cpu::collect(&root),
         motherboard: super::motherboard::collect(&root),
@@ -19,7 +20,8 @@ pub fn collect_report() -> Result<HardwareReport, String> {
 
 pub fn fallback_report(err: String) -> HardwareReport {
     HardwareReport {
-        disks: Vec::new(),
+        physical_disks: Vec::new(),
+        logical_disks: Vec::new(),
         memory: vec![MemoryDevice {
             slot: "System".to_string(),
             source: "placeholder/windows".to_string(),

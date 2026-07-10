@@ -25,10 +25,14 @@ pub use benchmark::{BenchmarkReport, BenchmarkRow};
 pub use capability::capability_report;
 pub use options::CollectOptions;
 
-use crate::hardware::HardwareReport;
+use sysinfo::Disks;
+
+use crate::hardware::{HardwareReport, LogicalDiskInfo};
 
 pub fn collect_report(options: CollectOptions) -> HardwareReport {
-    platform::collect_report(options)
+    let mut report = platform::collect_report(options);
+    report.logical_disks = collect_logical_disks();
+    report
 }
 
 pub fn benchmark_report(options: CollectOptions) -> BenchmarkReport {
@@ -54,12 +58,41 @@ fn benchmark_report_platform(options: CollectOptions) -> BenchmarkReport {
             backend: "default".to_string(),
             ok: true,
             elapsed_ms: started.elapsed().as_millis(),
-            disks: report.disks.len(),
+            disks: report.physical_disks.len(),
             memory: report.memory.len(),
             warnings: report.warnings.len(),
             note: "platform default collector".to_string(),
         }],
     }
+}
+
+pub fn collect_logical_disks() -> Vec<LogicalDiskInfo> {
+    let disks = Disks::new_with_refreshed_list();
+    disks
+        .list()
+        .iter()
+        .map(|disk| {
+            let total = disk.total_space();
+            let available = disk.available_space();
+            let used = total.saturating_sub(available);
+
+            LogicalDiskInfo {
+                device: disk.name().to_string_lossy().into_owned(),
+                mount_point: disk.mount_point().display().to_string(),
+                file_system: disk.file_system().to_string_lossy().into_owned(),
+                total: crate::telemetry::format_bytes(total),
+                used: crate::telemetry::format_bytes(used),
+                available: crate::telemetry::format_bytes(available),
+                used_percent: if total == 0 {
+                    0.0
+                } else {
+                    used as f64 / total as f64 * 100.0
+                },
+                source: "sysinfo".to_string(),
+                warnings: Vec::new(),
+            }
+        })
+        .collect()
 }
 
 #[cfg(not(any(

@@ -6,8 +6,20 @@ use crate::i18n::{display_optional, display_value, t, Lang};
 pub fn render_report(report: &HardwareReport, section: Section, lang: Lang, emoji: bool) -> String {
     let mut output = Vec::new();
 
-    if matches!(section, Section::Disk | Section::All) {
-        output.push(render_disks(report, lang, emoji));
+    if matches!(section, Section::Disk) {
+        output.push(t(lang, "disk.combined_hint").to_string());
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::PhysicalDisk | Section::All
+    ) {
+        output.push(render_physical_disks(report, lang, emoji));
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::LogicalDisk | Section::All
+    ) {
+        output.push(render_logical_disks(report, lang, emoji));
     }
     if matches!(section, Section::Memory | Section::All) {
         output.push(render_memory(report, lang, emoji));
@@ -127,9 +139,9 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> S
     lines.join("\n")
 }
 
-fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
+fn render_physical_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        format!("## {}", label(lang, "section.disk", emoji)),
+        format!("## {}", label(lang, "section.physical_disk", emoji)),
         String::new(),
         format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} |",
@@ -145,7 +157,7 @@ fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
         "| --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
     ];
 
-    for disk in &report.disks {
+    for disk in &report.physical_disks {
         lines.push(format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} |",
             value(&disk.device, lang),
@@ -156,6 +168,41 @@ fn render_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
             value(&disk.bus, lang),
             value(&disk.firmware, lang),
             value(&disk.health, lang)
+        ));
+    }
+
+    lines.join("\n")
+}
+
+fn render_logical_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
+    let mut lines = vec![
+        format!("## {}", label(lang, "section.logical_disk", emoji)),
+        String::new(),
+        format!(
+            "| {} | {} | {} | {} | {} | {} | {} | {} |",
+            label(lang, "disk.device", emoji),
+            label(lang, "disk.mount", emoji),
+            label(lang, "disk.filesystem", emoji),
+            label(lang, "disk.size", emoji),
+            label(lang, "disk.used", emoji),
+            label(lang, "disk.available", emoji),
+            label(lang, "disk.used_percent", emoji),
+            label(lang, "disk.source", emoji)
+        ),
+        "| --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
+    ];
+
+    for disk in &report.logical_disks {
+        lines.push(format!(
+            "| {} | {} | {} | {} | {} | {} | {:.1}% | {} |",
+            value(&disk.device, lang),
+            value(&disk.mount_point, lang),
+            value(&disk.file_system, lang),
+            value(&disk.total, lang),
+            value(&disk.used, lang),
+            value(&disk.available, lang),
+            disk.used_percent,
+            value(&disk.source, lang)
         ));
     }
 
@@ -339,8 +386,27 @@ fn label(lang: Lang, key: &str, enabled: bool) -> String {
 fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {
     let mut warnings = report.warnings.clone();
 
-    if matches!(section, Section::Disk | Section::All) {
-        warnings.extend(report.disks.iter().flat_map(|item| item.warnings.clone()));
+    if matches!(
+        section,
+        Section::Disk | Section::PhysicalDisk | Section::All
+    ) {
+        warnings.extend(
+            report
+                .physical_disks
+                .iter()
+                .flat_map(|item| item.warnings.clone()),
+        );
+    }
+    if matches!(
+        section,
+        Section::Disk | Section::LogicalDisk | Section::All
+    ) {
+        warnings.extend(
+            report
+                .logical_disks
+                .iter()
+                .flat_map(|item| item.warnings.clone()),
+        );
     }
     if matches!(section, Section::Memory | Section::All) {
         warnings.extend(report.memory.iter().flat_map(|item| item.warnings.clone()));

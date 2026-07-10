@@ -39,10 +39,22 @@ pub enum SpinnerStyle {
 #[serde(rename_all = "kebab-case")]
 pub enum TuiTab {
     Overview,
-    Disk,
+    #[value(alias = "disk", alias = "physical")]
+    PhysicalDisk,
+    #[value(alias = "logical")]
+    LogicalDisk,
     Memory,
     Cpu,
     Motherboard,
-    Health,
     Warnings,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ChartMode {
+    Gauge,
+    Bar,
+    Sparkline,
+    Line,
+    Scatter,
 }

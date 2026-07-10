@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crossterm::event::KeyCode;
 
-use crate::app::options::TuiTab;
+use crate::app::options::{ChartMode, TuiTab};
 use crate::collector::{self, CollectOptions};
 use crate::hardware::HardwareReport;
 use crate::i18n::{t, Lang};
@@ -27,6 +27,7 @@ pub(super) struct TuiState {
     pub(super) disk_read_history: VecDeque<f64>,
     pub(super) disk_write_history: VecDeque<f64>,
     disk_histories: Vec<DiskHistory>,
+    pub(super) selected_physical_disk: usize,
     pub(super) selected_disk: usize,
     pub(super) chart_mode: ChartMode,
     pub(super) status: String,
@@ -39,6 +40,7 @@ impl TuiState {
         emoji: bool,
         options: CollectOptions,
         interval_ms: u64,
+        initial_chart_mode: ChartMode,
     ) -> Self {
         let report = collector::collect_report(options);
         let mut state = Self {
@@ -55,8 +57,9 @@ impl TuiState {
             disk_read_history: VecDeque::with_capacity(HISTORY_LIMIT),
             disk_write_history: VecDeque::with_capacity(HISTORY_LIMIT),
             disk_histories: Vec::new(),
+            selected_physical_disk: 0,
             selected_disk: 0,
-            chart_mode: ChartMode::Line,
+            chart_mode: initial_chart_mode,
             status: String::new(),
         };
         state.sample();
@@ -74,6 +77,11 @@ impl TuiState {
             self.selected_disk = 0;
         } else if self.selected_disk >= self.latest.disks.len() {
             self.selected_disk = self.latest.disks.len() - 1;
+        }
+        if self.report.physical_disks.is_empty() {
+            self.selected_physical_disk = 0;
+        } else if self.selected_physical_disk >= self.report.physical_disks.len() {
+            self.selected_physical_disk = self.report.physical_disks.len() - 1;
         }
 
         push_history(&mut self.cpu_history, self.latest.cpu_total_percent);
@@ -148,6 +156,7 @@ impl TuiState {
         self.disk_read_history.clear();
         self.disk_write_history.clear();
         self.disk_histories.clear();
+        self.selected_physical_disk = 0;
         self.selected_disk = 0;
         self.sample();
         self.status = t(self.lang, "tui.refreshed").to_string();
@@ -180,13 +189,25 @@ impl TuiState {
     }
 
     fn next_disk(&mut self) {
-        if !self.latest.disks.is_empty() {
+        if self.tab == 1 {
+            if !self.report.physical_disks.is_empty() {
+                self.selected_physical_disk =
+                    (self.selected_physical_disk + 1) % self.report.physical_disks.len();
+            }
+        } else if self.tab == 2 && !self.latest.disks.is_empty() {
             self.selected_disk = (self.selected_disk + 1) % self.latest.disks.len();
         }
     }
 
     fn prev_disk(&mut self) {
-        if !self.latest.disks.is_empty() {
+        if self.tab == 1 {
+            if !self.report.physical_disks.is_empty() {
+                self.selected_physical_disk = (self.selected_physical_disk
+                    + self.report.physical_disks.len()
+                    - 1)
+                    % self.report.physical_disks.len();
+            }
+        } else if self.tab == 2 && !self.latest.disks.is_empty() {
             self.selected_disk =
                 (self.selected_disk + self.latest.disks.len() - 1) % self.latest.disks.len();
         }
@@ -199,33 +220,24 @@ pub(super) struct DiskHistory {
     pub(super) write: VecDeque<f64>,
 }
 
-#[derive(Clone, Copy)]
-pub(super) enum ChartMode {
-    Line,
-    Scatter,
-    Bar,
-    Sparkline,
-    Gauge,
-}
-
 impl ChartMode {
     fn next(self) -> Self {
         match self {
-            Self::Line => Self::Scatter,
-            Self::Scatter => Self::Bar,
+            Self::Gauge => Self::Bar,
             Self::Bar => Self::Sparkline,
-            Self::Sparkline => Self::Gauge,
-            Self::Gauge => Self::Line,
+            Self::Sparkline => Self::Line,
+            Self::Line => Self::Scatter,
+            Self::Scatter => Self::Gauge,
         }
     }
 
     fn prev(self) -> Self {
         match self {
-            Self::Line => Self::Gauge,
-            Self::Scatter => Self::Line,
-            Self::Bar => Self::Scatter,
+            Self::Gauge => Self::Scatter,
+            Self::Bar => Self::Gauge,
             Self::Sparkline => Self::Bar,
-            Self::Gauge => Self::Sparkline,
+            Self::Line => Self::Sparkline,
+            Self::Scatter => Self::Line,
         }
     }
 

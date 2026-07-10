@@ -2,7 +2,8 @@ use crate::hardware::{CpuInfo, HardwareReport, HdrtWarning, MemoryDevice, Mother
 
 pub(super) fn collect(source: &str) -> HardwareReport {
     HardwareReport {
-        disks: Vec::new(),
+        physical_disks: Vec::new(),
+        logical_disks: Vec::new(),
         memory: vec![MemoryDevice {
             slot: "System".to_string(),
             source: source.to_string(),

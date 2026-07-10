@@ -161,7 +161,7 @@ fn benchmark_ok(
         backend: backend.into(),
         ok: true,
         elapsed_ms: started.elapsed().as_millis(),
-        disks: report.disks.len(),
+        disks: report.physical_disks.len(),
         memory: report.memory.len(),
         warnings: report.warnings.len(),
         note: note.into(),

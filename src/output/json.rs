@@ -22,10 +22,29 @@ pub fn render_report(
         debug: Option<&'a Vec<crate::hardware::DebugRecord>>,
     }
 
+    #[derive(Serialize)]
+    struct DiskSections<'a> {
+        physical_disks: &'a [crate::hardware::DiskInfo],
+        logical_disks: &'a [crate::hardware::LogicalDiskInfo],
+    }
+
     let debug = (!report.debug.is_empty()).then_some(&report.debug);
     let value = match section {
         Section::Disk => serde_json::to_value(SelectedReport {
-            data: &report.disks,
+            data: DiskSections {
+                physical_disks: &report.physical_disks,
+                logical_disks: &report.logical_disks,
+            },
+            warnings: &report.warnings,
+            debug,
+        })?,
+        Section::PhysicalDisk => serde_json::to_value(SelectedReport {
+            data: &report.physical_disks,
+            warnings: &report.warnings,
+            debug,
+        })?,
+        Section::LogicalDisk => serde_json::to_value(SelectedReport {
+            data: &report.logical_disks,
             warnings: &report.warnings,
             debug,
         })?,
@@ -133,6 +152,8 @@ fn render_decorated(
 fn section_title(section: Section, lang: Lang, emoji: bool) -> String {
     let key = match section {
         Section::Disk => "section.disk",
+        Section::PhysicalDisk => "section.physical_disk",
+        Section::LogicalDisk => "section.logical_disk",
         Section::Memory => "section.memory",
         Section::Cpu => "section.cpu",
         Section::Motherboard => "section.motherboard",
@@ -145,6 +166,8 @@ fn report_label_keys(section: Section) -> &'static [&'static str] {
     match section {
         Section::Disk => &[
             "section.disk",
+            "section.physical_disk",
+            "section.logical_disk",
             "disk.device",
             "disk.model",
             "disk.serial",
@@ -153,6 +176,38 @@ fn report_label_keys(section: Section) -> &'static [&'static str] {
             "disk.bus",
             "disk.firmware",
             "disk.health",
+            "disk.mount",
+            "disk.filesystem",
+            "disk.used",
+            "disk.available",
+            "disk.used_percent",
+            "disk.source",
+            "warnings",
+            "hint",
+        ],
+        Section::PhysicalDisk => &[
+            "section.physical_disk",
+            "disk.device",
+            "disk.model",
+            "disk.serial",
+            "disk.size",
+            "disk.kind",
+            "disk.bus",
+            "disk.firmware",
+            "disk.health",
+            "warnings",
+            "hint",
+        ],
+        Section::LogicalDisk => &[
+            "section.logical_disk",
+            "disk.device",
+            "disk.mount",
+            "disk.filesystem",
+            "disk.size",
+            "disk.used",
+            "disk.available",
+            "disk.used_percent",
+            "disk.source",
             "warnings",
             "hint",
         ],
@@ -191,6 +246,8 @@ fn report_label_keys(section: Section) -> &'static [&'static str] {
         Section::All => &[
             "section.all",
             "section.disk",
+            "section.physical_disk",
+            "section.logical_disk",
             "section.memory",
             "section.cpu",
             "section.motherboard",
@@ -202,6 +259,12 @@ fn report_label_keys(section: Section) -> &'static [&'static str] {
             "disk.bus",
             "disk.firmware",
             "disk.health",
+            "disk.mount",
+            "disk.filesystem",
+            "disk.used",
+            "disk.available",
+            "disk.used_percent",
+            "disk.source",
             "memory.slot",
             "memory.size",
             "memory.speed",

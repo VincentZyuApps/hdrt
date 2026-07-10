@@ -17,6 +17,19 @@ pub struct DiskInfo {
     pub warnings: Vec<HdrtWarning>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogicalDiskInfo {
+    pub device: String,
+    pub mount_point: String,
+    pub file_system: String,
+    pub total: String,
+    pub used: String,
+    pub available: String,
+    pub used_percent: f64,
+    pub source: String,
+    pub warnings: Vec<HdrtWarning>,
+}
+
 impl Default for DiskInfo {
     fn default() -> Self {
         Self {
@@ -28,6 +41,22 @@ impl Default for DiskInfo {
             bus: unknown(),
             firmware: unknown(),
             health: unknown(),
+            source: unknown(),
+            warnings: Vec::new(),
+        }
+    }
+}
+
+impl Default for LogicalDiskInfo {
+    fn default() -> Self {
+        Self {
+            device: unknown(),
+            mount_point: unknown(),
+            file_system: unknown(),
+            total: unknown(),
+            used: unknown(),
+            available: unknown(),
+            used_percent: 0.0,
             source: unknown(),
             warnings: Vec::new(),
         }

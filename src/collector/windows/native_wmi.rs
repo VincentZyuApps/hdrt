@@ -49,7 +49,8 @@ pub fn collect_report(options: CollectOptions) -> Result<HardwareReport, String>
     let motherboard = collect_motherboard(&cimv2, &mut warnings);
 
     let report = HardwareReport {
-        disks,
+        physical_disks: disks,
+        logical_disks: Vec::new(),
         memory,
         cpu,
         motherboard,
@@ -57,7 +58,7 @@ pub fn collect_report(options: CollectOptions) -> Result<HardwareReport, String>
         debug,
     };
 
-    if report.disks.is_empty()
+    if report.physical_disks.is_empty()
         && report.memory.is_empty()
         && report.cpu.is_none()
         && report.motherboard.is_none()

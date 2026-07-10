@@ -12,11 +12,11 @@ use crate::telemetry::{self, DiskTelemetry, HISTORY_LIMIT};
 pub(super) fn tab_titles(lang: Lang, emoji_enabled: bool) -> Vec<Line<'static>> {
     [
         "section.overview",
-        "section.disk",
+        "section.physical_disk",
+        "section.logical_disk",
         "section.memory",
         "section.cpu",
         "section.motherboard",
-        "section.health",
         "warnings",
     ]
     .iter()
@@ -27,11 +27,11 @@ pub(super) fn tab_titles(lang: Lang, emoji_enabled: bool) -> Vec<Line<'static>> 
 pub(super) fn tab_index(tab: TuiTab) -> usize {
     match tab {
         TuiTab::Overview => 0,
-        TuiTab::Disk => 1,
-        TuiTab::Memory => 2,
-        TuiTab::Cpu => 3,
-        TuiTab::Motherboard => 4,
-        TuiTab::Health => 5,
+        TuiTab::PhysicalDisk => 1,
+        TuiTab::LogicalDisk => 2,
+        TuiTab::Memory => 3,
+        TuiTab::Cpu => 4,
+        TuiTab::Motherboard => 5,
         TuiTab::Warnings => 6,
     }
 }
@@ -106,7 +106,18 @@ pub(super) fn push_kv(lines: &mut Vec<Line<'static>>, key: String, value: String
 
 pub(super) fn collect_warnings(report: &HardwareReport) -> Vec<HdrtWarning> {
     let mut warnings = report.warnings.clone();
-    warnings.extend(report.disks.iter().flat_map(|item| item.warnings.clone()));
+    warnings.extend(
+        report
+            .physical_disks
+            .iter()
+            .flat_map(|item| item.warnings.clone()),
+    );
+    warnings.extend(
+        report
+            .logical_disks
+            .iter()
+            .flat_map(|item| item.warnings.clone()),
+    );
     warnings.extend(report.memory.iter().flat_map(|item| item.warnings.clone()));
     if let Some(cpu) = &report.cpu {
         warnings.extend(cpu.warnings.clone());

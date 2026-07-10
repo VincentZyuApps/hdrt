@@ -131,6 +131,8 @@ impl HelpRequest {
 #[derive(Debug, Clone, Copy)]
 enum HelpCommand {
     Disk,
+    PhysicalDisk,
+    LogicalDisk,
     Memory,
     Cpu,
     Motherboard,
@@ -144,6 +146,8 @@ impl HelpCommand {
     fn from_arg(value: &str) -> Option<Self> {
         match value {
             "disk" | "d" => Some(Self::Disk),
+            "physical-disk" | "pd" => Some(Self::PhysicalDisk),
+            "logical-disk" | "ld" => Some(Self::LogicalDisk),
             "memory" | "m" | "mem" => Some(Self::Memory),
             "cpu" | "c" => Some(Self::Cpu),
             "motherboard" | "b" | "mb" => Some(Self::Motherboard),
@@ -158,6 +162,8 @@ impl HelpCommand {
     fn name(self) -> &'static str {
         match self {
             Self::Disk => "disk",
+            Self::PhysicalDisk => "physical-disk",
+            Self::LogicalDisk => "logical-disk",
             Self::Memory => "memory",
             Self::Cpu => "cpu",
             Self::Motherboard => "motherboard",
@@ -171,6 +177,8 @@ impl HelpCommand {
     fn aliases(self) -> &'static str {
         match self {
             Self::Disk => "d",
+            Self::PhysicalDisk => "pd",
+            Self::LogicalDisk => "ld",
             Self::Memory => "m, mem",
             Self::Cpu => "c",
             Self::Motherboard => "b, mb",
@@ -182,6 +190,8 @@ impl HelpCommand {
     fn icon(self) -> &'static str {
         match self {
             Self::Disk => "💽",
+            Self::PhysicalDisk => "💽",
+            Self::LogicalDisk => "🗂️",
             Self::Memory => "🧠",
             Self::Cpu => "🧩",
             Self::Motherboard => "🧱",
@@ -195,7 +205,9 @@ impl HelpCommand {
     fn description(self, lang: Lang) -> &'static str {
         match lang {
             Lang::EnUs => match self {
-                Self::Disk => "Show physical disk information.",
+                Self::Disk => "Show physical and logical disk information.",
+                Self::PhysicalDisk => "Show physical disk information.",
+                Self::LogicalDisk => "Show logical disk information.",
                 Self::Memory => "Show memory module information.",
                 Self::Cpu => "Show CPU information.",
                 Self::Motherboard => "Show motherboard and BIOS information.",
@@ -205,7 +217,9 @@ impl HelpCommand {
                 Self::Tui => "Open the Ratatui interface.",
             },
             Lang::ZhCn => match self {
-                Self::Disk => "显示物理磁盘信息。",
+                Self::Disk => "同时显示物理磁盘和逻辑磁盘。",
+                Self::PhysicalDisk => "显示物理磁盘信息。",
+                Self::LogicalDisk => "显示逻辑磁盘信息。",
                 Self::Memory => "显示内存条信息。",
                 Self::Cpu => "显示 CPU 信息。",
                 Self::Motherboard => "显示主板和 BIOS 信息。",
@@ -220,6 +234,8 @@ impl HelpCommand {
 
 const COMMANDS: &[HelpCommand] = &[
     HelpCommand::Disk,
+    HelpCommand::PhysicalDisk,
+    HelpCommand::LogicalDisk,
     HelpCommand::Memory,
     HelpCommand::Cpu,
     HelpCommand::Motherboard,
@@ -521,7 +537,19 @@ fn push_tui_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 "Initial TUI tab.",
                 &[
                     "[default: overview]",
-                    "[possible values: overview, disk, memory, cpu, motherboard, health, warnings]",
+                    "[possible values: overview, physical-disk, logical-disk, memory, cpu, motherboard, warnings]",
+                    "[aliases: disk -> physical-disk, physical -> physical-disk, logical -> logical-disk]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
+                "📈",
+                "--chart-mode <CHART_MODE>",
+                "Initial TUI chart mode; z/c keeps cycling in the fixed order.",
+                &[
+                    "[default: gauge]",
+                    "[cycle: gauge, bar, sparkline, line, scatter]",
                 ],
             );
             push_option(
@@ -542,7 +570,19 @@ fn push_tui_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 "TUI 初始标签页。",
                 &[
                     "[默认: overview]",
-                    "[可选值: overview, disk, memory, cpu, motherboard, health, warnings]",
+                    "[可选值: overview, physical-disk, logical-disk, memory, cpu, motherboard, warnings]",
+                    "[别名: disk -> physical-disk, physical -> physical-disk, logical -> logical-disk]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
+                "📈",
+                "--chart-mode <CHART_MODE>",
+                "TUI 初始图表模式；z/c 仍按固定顺序循环。",
+                &[
+                    "[默认: gauge]",
+                    "[循环: gauge, bar, sparkline, line, scatter]",
                 ],
             );
             push_option(
@@ -596,7 +636,13 @@ fn icon_text(emoji: bool, icon: &str, text: &str) -> String {
 fn option_takes_value(token: &str) -> bool {
     matches!(
         token,
-        "--format" | "--detail" | "--backend" | "--spinner-style" | "--tab" | "--interval"
+        "--format"
+            | "--detail"
+            | "--backend"
+            | "--spinner-style"
+            | "--tab"
+            | "--chart-mode"
+            | "--interval"
     )
 }
 

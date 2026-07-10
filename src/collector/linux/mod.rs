@@ -78,7 +78,7 @@ fn benchmark_backend(
         backend: name.to_string(),
         ok: true,
         elapsed_ms: started.elapsed().as_millis(),
-        disks: report.disks.len(),
+        disks: report.physical_disks.len(),
         memory: report.memory.len(),
         warnings: report.warnings.len(),
         note: note.to_string(),
@@ -90,7 +90,8 @@ fn collect_auto(options: CollectOptions) -> HardwareReport {
     let shell = shell::collect_report(options);
 
     HardwareReport {
-        disks: merge_disks(native.disks, shell.disks),
+        physical_disks: merge_disks(native.physical_disks, shell.physical_disks),
+        logical_disks: Vec::new(),
         memory: merge_memory(native.memory, shell.memory),
         cpu: merge_cpu(native.cpu, shell.cpu),
         motherboard: merge_motherboard(native.motherboard, shell.motherboard),

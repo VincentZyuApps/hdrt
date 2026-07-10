@@ -2,7 +2,8 @@ use crate::hardware::{HardwareReport, HdrtWarning};
 
 pub(super) fn collect_report() -> HardwareReport {
     let mut report = HardwareReport {
-        disks: super::native_disk::collect(),
+        physical_disks: super::native_disk::collect(),
+        logical_disks: Vec::new(),
         memory: super::native_memory::collect(),
         cpu: super::cpu::collect(),
         motherboard: super::motherboard::collect(),
@@ -10,7 +11,7 @@ pub(super) fn collect_report() -> HardwareReport {
         debug: Vec::new(),
     };
 
-    if report.disks.is_empty() {
+    if report.physical_disks.is_empty() {
         report.warnings.push(HdrtWarning::with_hint(
             "linux-native-disk-empty",
             "Native Linux disk collection returned no block devices.",
