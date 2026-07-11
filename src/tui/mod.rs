@@ -3,19 +3,21 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::app::options::{ChartMode, SpinnerStyle, TuiTab};
+use crate::app::options::{ChartMode, SpinnerStyle, TuiBorder, TuiTab};
 use crate::app::spinner::Spinner;
 use crate::collector::CollectOptions;
 use crate::emoji as emoji_icons;
 use crate::i18n::{t, Lang};
 
-mod cpu;
-mod panels;
-mod render;
-mod screens;
-mod state;
-mod utils;
 mod charts;
+mod cpu;
+mod draw;
+mod panels;
+mod screens;
+mod selection;
+mod state;
+mod style;
+mod utils;
 mod widgets;
 
 use self::state::TuiState;
@@ -23,12 +25,15 @@ use self::state::TuiState;
 pub fn run(
     initial_tab: TuiTab,
     initial_chart_mode: ChartMode,
+    border: TuiBorder,
     lang: Lang,
     emoji: bool,
     options: CollectOptions,
     interval_ms: u64,
     no_spinner: bool,
     spinner_style: SpinnerStyle,
+    color: bool,
+    bold: bool,
 ) -> Result<()> {
     let loading = Spinner::start(
         !no_spinner,
@@ -42,6 +47,9 @@ pub fn run(
         options,
         interval_ms,
         initial_chart_mode,
+        border,
+        color,
+        bold,
     );
     loading.finish();
 
@@ -61,7 +69,7 @@ fn run_inner(terminal: &mut ratatui::DefaultTerminal, state: &mut TuiState) -> R
             next_sample = now + state.interval;
         }
 
-        terminal.draw(|frame| render::draw(frame, state))?;
+        terminal.draw(|frame| draw::draw(frame, state))?;
 
         let timeout = next_sample
             .saturating_duration_since(Instant::now())

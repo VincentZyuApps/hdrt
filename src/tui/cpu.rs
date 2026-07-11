@@ -1,7 +1,7 @@
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::i18n::t;
@@ -16,7 +16,7 @@ const MIN_GAUGE_WIDTH: usize = 4;
 pub(super) fn draw_core_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
     let cores = &state.latest.cpu_cores_percent;
     if cores.is_empty() {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     }
 
@@ -35,7 +35,7 @@ pub(super) fn draw_core_gauges(frame: &mut Frame, area: Rect, state: &TuiState) 
         .collect::<Vec<_>>();
 
     frame.render_widget(
-        Paragraph::new(lines).block(Block::bordered().title(t(state.lang, "tui.cpu_cores"))),
+        Paragraph::new(lines).block(state.style.block().title(t(state.lang, "tui.cpu_cores"))),
         area,
     );
 }

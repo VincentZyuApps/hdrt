@@ -1,9 +1,19 @@
+use std::collections::BTreeMap;
+
 use crate::collector::BenchmarkReport;
 use crate::emoji;
 use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
 use crate::i18n::{display_optional, display_value, t, Lang};
 
-pub fn render_report(report: &HardwareReport, section: Section, lang: Lang, emoji: bool) -> String {
+use super::warnings;
+
+pub fn render_report(
+    report: &HardwareReport,
+    section: Section,
+    debug_requested: bool,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let mut output = Vec::new();
 
     if matches!(section, Section::Disk) {
@@ -31,13 +41,13 @@ pub fn render_report(report: &HardwareReport, section: Section, lang: Lang, emoj
         output.push(render_motherboard(report, lang, emoji));
     }
 
-    let warnings = collect_warnings(report, section);
+    let warnings = warnings::collect(report, section);
     if !warnings.is_empty() {
         output.push(render_warnings(&warnings, lang, emoji));
     }
 
-    if !report.debug.is_empty() {
-        output.push(render_debug(&report.debug));
+    if debug_requested || !report.debug.is_empty() {
+        output.push(render_debug(report, section, lang, emoji));
     }
 
     output.join("\n\n")
@@ -179,30 +189,28 @@ fn render_logical_disks(report: &HardwareReport, lang: Lang, emoji: bool) -> Str
         format!("## {}", label(lang, "section.logical_disk", emoji)),
         String::new(),
         format!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} |",
             label(lang, "disk.device", emoji),
             label(lang, "disk.mount", emoji),
             label(lang, "disk.filesystem", emoji),
             label(lang, "disk.size", emoji),
             label(lang, "disk.used", emoji),
             label(lang, "disk.available", emoji),
-            label(lang, "disk.used_percent", emoji),
-            label(lang, "disk.source", emoji)
+            label(lang, "disk.used_percent", emoji)
         ),
-        "| --- | --- | --- | --- | --- | --- | --- | --- |".to_string(),
+        "| --- | --- | --- | --- | --- | --- | --- |".to_string(),
     ];
 
     for disk in &report.logical_disks {
         lines.push(format!(
-            "| {} | {} | {} | {} | {} | {} | {:.1}% | {} |",
+            "| {} | {} | {} | {} | {} | {} | {:.1}% |",
             value(&disk.device, lang),
             value(&disk.mount_point, lang),
             value(&disk.file_system, lang),
             value(&disk.total, lang),
             value(&disk.used, lang),
             value(&disk.available, lang),
-            disk.used_percent,
-            value(&disk.source, lang)
+            disk.used_percent
         ));
     }
 
@@ -310,11 +318,6 @@ fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> Strin
         ),
         format!(
             "- {}: `{}`",
-            label(lang, "motherboard.serial", emoji),
-            value(&board.serial, lang)
-        ),
-        format!(
-            "- {}: `{}`",
             label(lang, "motherboard.bios_vendor", emoji),
             value(&board.bios_vendor, lang)
         ),
@@ -351,12 +354,65 @@ fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String 
     lines.join("\n")
 }
 
-fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
+fn render_debug(report: &HardwareReport, section: Section, lang: Lang, emoji: bool) -> String {
     let mut lines = vec![
-        "## Debug".to_string(),
+        format!("## {}", label(lang, "debug.summary", emoji)),
+        String::new(),
+        format!("### {}", label(lang, "debug.collector_summary", emoji)),
     ];
 
-    for (index, record) in records.iter().enumerate() {
+    let mut counts = BTreeMap::<String, usize>::new();
+    for record in &report.debug {
+        *counts.entry(record.source.clone()).or_default() += 1;
+    }
+    if counts.is_empty() {
+        lines.push(format!("- {}", t(lang, "debug.no_records")));
+    } else {
+        for (source, count) in counts {
+            lines.push(format!(
+                "- `{source}`: {} {}",
+                count,
+                t(lang, "debug.records_count")
+            ));
+        }
+    }
+
+    lines.push(String::new());
+    lines.push(format!("### {}", label(lang, "debug.hidden_fields", emoji)));
+    let hidden_start = lines.len();
+    if matches!(section, Section::Disk | Section::LogicalDisk | Section::All) {
+        for disk in &report.logical_disks {
+            let label = if disk.mount_point.trim().is_empty() {
+                &disk.device
+            } else {
+                &disk.mount_point
+            };
+            lines.push(format!(
+                "- `logical_disk.source[{label}]`: `{}`",
+                value(&disk.source, lang)
+            ));
+        }
+    }
+    if matches!(section, Section::Motherboard | Section::All) {
+        if let Some(board) = &report.motherboard {
+            lines.push(format!(
+                "- `motherboard.serial`: `{}`",
+                value(&board.serial, lang)
+            ));
+        }
+    }
+    if lines.len() == hidden_start {
+        lines.push(format!("- {}", t(lang, "debug.none")));
+    }
+
+    lines.push(String::new());
+    lines.push(format!("## {}", label(lang, "debug.records", emoji)));
+    if report.debug.is_empty() {
+        lines.push(format!("- {}", t(lang, "debug.no_records")));
+        return lines.join("\n");
+    }
+
+    for (index, record) in report.debug.iter().enumerate() {
         lines.push(String::new());
         lines.push(format!("### {}. {}", index + 1, record.target));
         lines.push(String::new());
@@ -367,7 +423,7 @@ fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
         }
 
         if record.fields.is_empty() {
-            lines.push("- fields: none".to_string());
+            lines.push(format!("- fields: {}", t(lang, "debug.none")));
         } else {
             lines.push("- fields:".to_string());
             for (key, value) in &record.fields {
@@ -381,46 +437,4 @@ fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
 
 fn label(lang: Lang, key: &str, enabled: bool) -> String {
     emoji::decorate(enabled, key, t(lang, key))
-}
-
-fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {
-    let mut warnings = report.warnings.clone();
-
-    if matches!(
-        section,
-        Section::Disk | Section::PhysicalDisk | Section::All
-    ) {
-        warnings.extend(
-            report
-                .physical_disks
-                .iter()
-                .flat_map(|item| item.warnings.clone()),
-        );
-    }
-    if matches!(
-        section,
-        Section::Disk | Section::LogicalDisk | Section::All
-    ) {
-        warnings.extend(
-            report
-                .logical_disks
-                .iter()
-                .flat_map(|item| item.warnings.clone()),
-        );
-    }
-    if matches!(section, Section::Memory | Section::All) {
-        warnings.extend(report.memory.iter().flat_map(|item| item.warnings.clone()));
-    }
-    if matches!(section, Section::Cpu | Section::All) {
-        if let Some(cpu) = &report.cpu {
-            warnings.extend(cpu.warnings.clone());
-        }
-    }
-    if matches!(section, Section::Motherboard | Section::All) {
-        if let Some(board) = &report.motherboard {
-            warnings.extend(board.warnings.clone());
-        }
-    }
-
-    warnings
 }

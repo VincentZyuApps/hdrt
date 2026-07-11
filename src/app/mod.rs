@@ -2,20 +2,20 @@ pub mod cli;
 pub mod command;
 pub mod options;
 mod help;
-mod help_render;
 pub(crate) mod spinner;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::Parser;
 
 use crate::collector::{self, CollectOptions};
 use crate::emoji;
 use crate::hardware::Section;
 use crate::i18n::t;
-use crate::{output, ui};
+use crate::{render, tui};
 
 use cli::Cli;
 use command::Command;
+use options::RenderFormat;
 use spinner::Spinner;
 
 pub fn run() -> Result<()> {
@@ -28,6 +28,10 @@ pub fn run() -> Result<()> {
 }
 
 fn execute(cli: Cli) -> Result<()> {
+    if cli.format != RenderFormat::Table && cli.style.is_some() {
+        bail!("--style/--table-style only applies to --format table");
+    }
+
     let command = cli.command.clone().unwrap_or(Command::All);
 
     match command {
@@ -43,10 +47,12 @@ fn execute(cli: Cli) -> Result<()> {
         Command::Tui {
             tab,
             chart_mode,
+            border,
             interval,
-        } => ui::run(
+        } => tui::run(
             tab,
             chart_mode,
+            border,
             cli.lang,
             cli.emoji,
             CollectOptions {
@@ -57,6 +63,8 @@ fn execute(cli: Cli) -> Result<()> {
             interval,
             cli.no_spinner,
             cli.spinner_style,
+            cli.color_enabled(),
+            cli.bold_enabled(),
         ),
     }
 }
@@ -64,7 +72,15 @@ fn execute(cli: Cli) -> Result<()> {
 fn print_doctor(cli: &Cli) -> Result<()> {
     let spinner = start_spinner(cli, "spinner.doctor");
     let capabilities = collector::capability_report();
-    let rendered = output::render_capabilities(&capabilities, cli.format, cli.lang, cli.emoji)?;
+    let rendered = render::render_capabilities(
+        &capabilities,
+        cli.format,
+        cli.table_style(),
+        cli.color_enabled(),
+        cli.bold_enabled(),
+        cli.lang,
+        cli.emoji,
+    )?;
     spinner.finish();
     println!("{rendered}");
     Ok(())
@@ -77,7 +93,15 @@ fn print_benchmarks(cli: &Cli) -> Result<()> {
         backend: cli.backend,
         debug: cli.debug,
     });
-    let rendered = output::render_benchmarks(&benchmarks, cli.format, cli.lang, cli.emoji)?;
+    let rendered = render::render_benchmarks(
+        &benchmarks,
+        cli.format,
+        cli.table_style(),
+        cli.color_enabled(),
+        cli.bold_enabled(),
+        cli.lang,
+        cli.emoji,
+    )?;
     spinner.finish();
     println!("{rendered}");
     Ok(())
@@ -90,7 +114,17 @@ fn print_section(cli: &Cli, section: Section) -> Result<()> {
         backend: cli.backend,
         debug: cli.debug,
     });
-    let rendered = output::render_report(&report, section, cli.format, cli.lang, cli.emoji)?;
+    let rendered = render::render_report(
+        &report,
+        section,
+        cli.format,
+        cli.table_style(),
+        cli.color_enabled(),
+        cli.bold_enabled(),
+        cli.debug,
+        cli.lang,
+        cli.emoji,
+    )?;
     spinner.finish();
     println!("{rendered}");
     Ok(())

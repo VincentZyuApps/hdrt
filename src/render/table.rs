@@ -1,16 +1,22 @@
 use tabled::builder::Builder;
 use tabled::settings::Style;
 
-use crate::app::options::OutputFormat;
+use crate::app::options::TableStyle;
 use crate::collector::BenchmarkReport;
 use crate::emoji;
-use crate::hardware::{CapabilityReport, HardwareReport, HdrtWarning, Section};
+use crate::hardware::{CapabilityReport, HardwareReport, Section};
 use crate::i18n::{display_optional, display_value, t, Lang};
 
-pub fn render_report(
+use super::debug;
+use super::style::{style_table_header, TextStyle};
+use super::warnings;
+
+pub(super) fn render_report(
     report: &HardwareReport,
     section: Section,
-    format: OutputFormat,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    debug_requested: bool,
     lang: Lang,
     emoji: bool,
 ) -> String {
@@ -23,37 +29,61 @@ pub fn render_report(
         section,
         Section::Disk | Section::PhysicalDisk | Section::All
     ) {
-        output.push(render_physical_disks(report, format, lang, emoji));
+        output.push(render_physical_disks(
+            report,
+            table_style,
+            text_style,
+            lang,
+            emoji,
+        ));
     }
     if matches!(
         section,
         Section::Disk | Section::LogicalDisk | Section::All
     ) {
-        output.push(render_logical_disks(report, format, lang, emoji));
+        output.push(render_logical_disks(
+            report,
+            table_style,
+            text_style,
+            lang,
+            emoji,
+        ));
     }
     if matches!(section, Section::Memory | Section::All) {
-        output.push(render_memory(report, format, lang, emoji));
+        output.push(render_memory(report, table_style, text_style, lang, emoji));
     }
     if matches!(section, Section::Cpu | Section::All) {
-        output.push(render_cpu(report, lang, emoji));
+        output.push(render_cpu(report, table_style, text_style, lang, emoji));
     }
     if matches!(section, Section::Motherboard | Section::All) {
-        output.push(render_motherboard(report, lang, emoji));
+        output.push(render_motherboard(
+            report,
+            table_style,
+            text_style,
+            lang,
+            emoji,
+        ));
     }
 
-    let warnings = collect_warnings(report, section);
+    let warnings = warnings::collect(report, section);
     if !warnings.is_empty() {
-        output.push(render_warnings(&warnings, lang, emoji));
+        output.push(warnings::render(&warnings, lang, emoji, text_style));
     }
 
-    if !report.debug.is_empty() {
-        output.push(render_debug(&report.debug));
+    if debug_requested || !report.debug.is_empty() {
+        output.push(debug::render(report, section, lang, emoji, text_style));
     }
 
     output.join("\n\n")
 }
 
-pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -> String {
+pub(super) fn render_capabilities(
+    report: &CapabilityReport,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
         .tools
         .iter()
@@ -93,7 +123,8 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -
                 lang,
             ),
             rows,
-            OutputFormat::Table,
+            table_style,
+            text_style,
         ),
     ];
 
@@ -105,7 +136,13 @@ pub fn render_capabilities(report: &CapabilityReport, lang: Lang, emoji: bool) -
     output.join("\n")
 }
 
-pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> String {
+pub(super) fn render_benchmarks(
+    report: &BenchmarkReport,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
         .rows
         .iter()
@@ -143,7 +180,8 @@ pub fn render_benchmarks(report: &BenchmarkReport, lang: Lang, emoji: bool) -> S
                 lang,
             ),
             rows,
-            OutputFormat::Table,
+            table_style,
+            text_style,
         ),
     ]
     .join("\n")
@@ -155,7 +193,8 @@ fn render_disk_hint(lang: Lang) -> String {
 
 fn render_physical_disks(
     report: &HardwareReport,
-    format: OutputFormat,
+    table_style: TableStyle,
+    text_style: TextStyle,
     lang: Lang,
     emoji: bool,
 ) -> String {
@@ -192,7 +231,8 @@ fn render_physical_disks(
             lang,
         ),
         rows,
-        format,
+        table_style,
+        text_style,
         lang,
         emoji,
     )
@@ -200,7 +240,8 @@ fn render_physical_disks(
 
 fn render_logical_disks(
     report: &HardwareReport,
-    format: OutputFormat,
+    table_style: TableStyle,
+    text_style: TextStyle,
     lang: Lang,
     emoji: bool,
 ) -> String {
@@ -216,7 +257,6 @@ fn render_logical_disks(
                 value(&disk.used, lang),
                 value(&disk.available, lang),
                 format!("{:.1}%", disk.used_percent),
-                value(&disk.source, lang),
             ]
         })
         .collect();
@@ -232,18 +272,24 @@ fn render_logical_disks(
                 "disk.used",
                 "disk.available",
                 "disk.used_percent",
-                "disk.source",
             ],
             lang,
         ),
         rows,
-        format,
+        table_style,
+        text_style,
         lang,
         emoji,
     )
 }
 
-fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang, emoji: bool) -> String {
+fn render_memory(
+    report: &HardwareReport,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
         .memory
         .iter()
@@ -273,13 +319,20 @@ fn render_memory(report: &HardwareReport, format: OutputFormat, lang: Lang, emoj
             lang,
         ),
         rows,
-        format,
+        table_style,
+        text_style,
         lang,
         emoji,
     )
 }
 
-fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
+fn render_cpu(
+    report: &HardwareReport,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
         .cpu
         .iter()
@@ -307,13 +360,20 @@ fn render_cpu(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
             lang,
         ),
         rows,
-        OutputFormat::Table,
+        table_style,
+        text_style,
         lang,
         emoji,
     )
 }
 
-fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> String {
+fn render_motherboard(
+    report: &HardwareReport,
+    table_style: TableStyle,
+    text_style: TextStyle,
+    lang: Lang,
+    emoji: bool,
+) -> String {
     let rows: Vec<Vec<String>> = report
         .motherboard
         .iter()
@@ -322,7 +382,6 @@ fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> Strin
                 value(&board.manufacturer, lang),
                 value(&board.product, lang),
                 value(&board.version, lang),
-                value(&board.serial, lang),
                 value(&board.bios_vendor, lang),
                 value(&board.bios_version, lang),
             ]
@@ -336,14 +395,14 @@ fn render_motherboard(report: &HardwareReport, lang: Lang, emoji: bool) -> Strin
                 "motherboard.manufacturer",
                 "motherboard.product",
                 "motherboard.version",
-                "motherboard.serial",
                 "motherboard.bios_vendor",
                 "motherboard.bios_version",
             ],
             lang,
         ),
         rows,
-        OutputFormat::Table,
+        table_style,
+        text_style,
         lang,
         emoji,
     )
@@ -353,19 +412,25 @@ fn section_with_table(
     title_key: &str,
     headers: Vec<String>,
     rows: Vec<Vec<String>>,
-    format: OutputFormat,
+    table_style: TableStyle,
+    text_style: TextStyle,
     lang: Lang,
     emoji: bool,
 ) -> String {
-    let title = label(lang, title_key, emoji);
+    let title = text_style.title(label(lang, title_key, emoji));
     if rows.is_empty() {
         return format!("{title}\n{}", t(lang, "no_data"));
     }
 
-    format!("{title}\n{}", make_table(headers, rows, format))
+    format!("{title}\n{}", make_table(headers, rows, table_style, text_style))
 }
 
-fn make_table(headers: Vec<String>, rows: Vec<Vec<String>>, format: OutputFormat) -> String {
+fn make_table(
+    headers: Vec<String>,
+    rows: Vec<Vec<String>>,
+    table_style: TableStyle,
+    text_style: TextStyle,
+) -> String {
     let mut builder = Builder::default();
     builder.push_record(headers);
     for row in rows {
@@ -373,11 +438,15 @@ fn make_table(headers: Vec<String>, rows: Vec<Vec<String>>, format: OutputFormat
     }
 
     let mut table = builder.build();
-    match format {
-        OutputFormat::Compact => table.with(Style::modern()),
-        _ => table.with(Style::rounded()),
+    match table_style {
+        TableStyle::Rounded => table.with(Style::rounded()),
+        TableStyle::Modern => table.with(Style::modern()),
+        TableStyle::Sharp => table.with(Style::sharp()),
+        TableStyle::Psql => table.with(Style::psql()),
+        TableStyle::Ascii => table.with(Style::ascii()),
+        TableStyle::Blank => table.with(Style::blank()),
     };
-    table.to_string()
+    style_table_header(table.to_string(), table_style, text_style)
 }
 
 fn headers(keys: &[&str], lang: Lang, emoji: bool) -> Vec<String> {
@@ -397,84 +466,6 @@ fn yes_no(value: bool, lang: Lang) -> String {
     t(lang, if value { "yes" } else { "no" }).to_string()
 }
 
-fn render_warnings(warnings: &[HdrtWarning], lang: Lang, emoji: bool) -> String {
-    let mut lines = vec![format!("{}:", label(lang, "warnings", emoji))];
-    for warning in warnings {
-        lines.push(format!("- [{}] {}", warning.code, warning.message));
-        if let Some(hint) = &warning.hint {
-            lines.push(format!("  {}: {hint}", label(lang, "hint", emoji)));
-        }
-    }
-    lines.join("\n")
-}
-
-fn render_debug(records: &[crate::hardware::DebugRecord]) -> String {
-    let mut lines = vec!["Debug".to_string()];
-
-    for (index, record) in records.iter().enumerate() {
-        lines.push(String::new());
-        lines.push(format!("[{}] {}", index + 1, record.target));
-        lines.push(format!("  source: {}", record.source));
-
-        if let Some(note) = record.note.as_deref().filter(|note| !note.is_empty()) {
-            lines.push(format!("  note: {note}"));
-        }
-
-        if record.fields.is_empty() {
-            lines.push("  fields: none".to_string());
-        } else {
-            lines.push("  fields:".to_string());
-            for (key, value) in &record.fields {
-                lines.push(format!("    {key}: {value}"));
-            }
-        }
-    }
-
-    lines.join("\n")
-}
-
 fn label(lang: Lang, key: &str, enabled: bool) -> String {
     emoji::decorate(enabled, key, t(lang, key))
-}
-
-fn collect_warnings(report: &HardwareReport, section: Section) -> Vec<HdrtWarning> {
-    let mut warnings = report.warnings.clone();
-
-    if matches!(
-        section,
-        Section::Disk | Section::PhysicalDisk | Section::All
-    ) {
-        warnings.extend(
-            report
-                .physical_disks
-                .iter()
-                .flat_map(|item| item.warnings.clone()),
-        );
-    }
-    if matches!(
-        section,
-        Section::Disk | Section::LogicalDisk | Section::All
-    ) {
-        warnings.extend(
-            report
-                .logical_disks
-                .iter()
-                .flat_map(|item| item.warnings.clone()),
-        );
-    }
-    if matches!(section, Section::Memory | Section::All) {
-        warnings.extend(report.memory.iter().flat_map(|item| item.warnings.clone()));
-    }
-    if matches!(section, Section::Cpu | Section::All) {
-        if let Some(cpu) = &report.cpu {
-            warnings.extend(cpu.warnings.clone());
-        }
-    }
-    if matches!(section, Section::Motherboard | Section::All) {
-        if let Some(board) = &report.motherboard {
-            warnings.extend(board.warnings.clone());
-        }
-    }
-
-    warnings
 }

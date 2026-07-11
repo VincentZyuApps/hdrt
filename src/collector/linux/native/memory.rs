@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::hardware::{unknown, HdrtWarning, MemoryDevice};
 
-use super::command::format_bytes;
+use super::super::command::format_bytes;
 
 pub(super) fn collect() -> Vec<MemoryDevice> {
     vec![MemoryDevice {

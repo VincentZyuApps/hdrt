@@ -4,8 +4,6 @@ mod disk;
 mod memory;
 mod motherboard;
 mod native;
-mod native_disk;
-mod native_memory;
 mod shell;
 
 use std::time::Instant;

@@ -6,16 +6,18 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Axis, Bar, BarChart, BarGroup, Block, Chart, Dataset, Gauge, GraphType, Paragraph, Sparkline,
-    Wrap,
+    Axis, Bar, BarChart, BarGroup, Chart, Dataset, Gauge, GraphType, Paragraph, Sparkline, Wrap,
 };
 use ratatui::Frame;
 
+use crate::app::options::ChartMode;
 use crate::telemetry;
 
-use crate::app::options::ChartMode;
 use super::charts::{draw_chart, draw_dual_chart, draw_history_bars, draw_sparkline};
-use super::utils::{format_metric, history_peak, MetricKind};
+use super::style::TuiStyle;
+use super::utils::{
+    format_metric, gauge_bar, history_peak, io_panel_title, short_label, MetricKind,
+};
 
 pub(super) struct ComparisonItem {
     pub(super) label: String,
@@ -31,9 +33,10 @@ pub(super) fn draw_comparison_widget(
     fixed_max: Option<f64>,
     mode: ChartMode,
     color: Color,
+    style: TuiStyle,
 ) {
     if items.is_empty() {
-        draw_empty(frame, area, "No data collected.");
+        draw_empty(frame, area, "No data collected.", style);
         return;
     }
 
@@ -46,11 +49,26 @@ pub(super) fn draw_comparison_widget(
     });
 
     match mode {
-        ChartMode::Gauge => draw_comparison_gauges(frame, area, title, items, max_value, color),
-        ChartMode::Bar => draw_comparison_bars(frame, area, title, items, max_value, color),
-        ChartMode::Sparkline => draw_comparison_sparkline(frame, area, title, items, max_value, color),
+        ChartMode::Gauge => {
+            draw_comparison_gauges(frame, area, title, items, max_value, color, style)
+        }
+        ChartMode::Bar => {
+            draw_comparison_bars(frame, area, title, items, max_value, color, style)
+        }
+        ChartMode::Sparkline => {
+            draw_comparison_sparkline(frame, area, title, items, max_value, color, style)
+        }
         ChartMode::Line => {
-            draw_static_chart(frame, area, title, items, max_value, color, GraphType::Line)
+            draw_static_chart(
+                frame,
+                area,
+                title,
+                items,
+                max_value,
+                color,
+                GraphType::Line,
+                style,
+            )
         }
         ChartMode::Scatter => draw_static_chart(
             frame,
@@ -60,6 +78,7 @@ pub(super) fn draw_comparison_widget(
             max_value,
             color,
             GraphType::Scatter,
+            style,
         ),
     }
 }
@@ -74,6 +93,7 @@ pub(super) fn draw_history_widget(
     color: Color,
     mode: ChartMode,
     interval: Duration,
+    style: TuiStyle,
 ) {
     let max_value = match kind {
         MetricKind::Percent => 100.0,
@@ -90,6 +110,7 @@ pub(super) fn draw_history_widget(
             GraphType::Line,
             kind,
             interval,
+            style,
         ),
         ChartMode::Scatter => {
             draw_chart(
@@ -102,12 +123,25 @@ pub(super) fn draw_history_widget(
                 GraphType::Scatter,
                 kind,
                 interval,
+                style,
             )
         }
         ChartMode::Bar => {
-            draw_history_bars(frame, area, title, history, max_value, color, kind, interval)
+            draw_history_bars(
+                frame,
+                area,
+                title,
+                history,
+                max_value,
+                color,
+                kind,
+                interval,
+                style,
+            )
         }
-        ChartMode::Sparkline => draw_sparkline(frame, area, title, history, max_value, color),
+        ChartMode::Sparkline => {
+            draw_sparkline(frame, area, title, history, max_value, color, style)
+        }
         ChartMode::Gauge => draw_gauge_panel(
             frame,
             area,
@@ -118,6 +152,7 @@ pub(super) fn draw_history_widget(
                 current / max_value * 100.0
             },
             color,
+            style,
         ),
     }
 }
@@ -129,6 +164,7 @@ fn draw_comparison_gauges(
     items: &[ComparisonItem],
     max_value: f64,
     color: Color,
+    style: TuiStyle,
 ) {
     let inner_width = area.width.saturating_sub(4).max(10) as usize;
     let bar_width = inner_width.clamp(10, 28);
@@ -154,7 +190,7 @@ fn draw_comparison_gauges(
 
     frame.render_widget(
         Paragraph::new(lines)
-            .block(Block::bordered().title(title.to_string()))
+            .block(style.block().title(title.to_string()))
             .wrap(Wrap { trim: true }),
         area,
     );
@@ -167,13 +203,14 @@ fn draw_comparison_sparkline(
     items: &[ComparisonItem],
     max_value: f64,
     color: Color,
+    style: TuiStyle,
 ) {
     let data = items
         .iter()
         .map(|item| item.value.round().max(0.0) as u64)
         .collect::<Vec<_>>();
     let sparkline = Sparkline::default()
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .data(&data)
         .max(max_value.round().max(1.0) as u64)
         .style(Style::default().fg(color));
@@ -187,6 +224,7 @@ fn draw_comparison_bars(
     items: &[ComparisonItem],
     max_value: f64,
     color: Color,
+    style: TuiStyle,
 ) {
     let bars = items
         .iter()
@@ -199,7 +237,7 @@ fn draw_comparison_bars(
         .collect::<Vec<_>>();
     let group = BarGroup::default().bars(&bars);
     let chart = BarChart::default()
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .data(group)
         .max(max_value.round().max(1.0) as u64)
         .bar_width(5)
@@ -217,6 +255,7 @@ fn draw_static_chart(
     max_value: f64,
     color: Color,
     graph_type: GraphType,
+    style: TuiStyle,
 ) {
     let points = items
         .iter()
@@ -236,7 +275,7 @@ fn draw_static_chart(
         .map(|item| item.display.clone())
         .unwrap_or_else(|| format!("{:.0}", max_value.round()));
     let chart = Chart::new(vec![dataset])
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .x_axis(
             Axis::default()
                 .bounds([0.0, x_max])
@@ -260,24 +299,6 @@ fn static_axis_labels(items: &[ComparisonItem]) -> Vec<Span<'static>> {
     }
 }
 
-fn gauge_bar(percent: f64, width: usize) -> String {
-    let filled = ((percent / 100.0) * width as f64).round() as usize;
-    let empty = width.saturating_sub(filled);
-    format!("[{}{}]", "█".repeat(filled), "░".repeat(empty))
-}
-
-fn short_label(value: &str) -> String {
-    let value = value.trim();
-    const MAX: usize = 14;
-    if value.chars().count() <= MAX {
-        value.to_string()
-    } else {
-        let mut text = value.chars().take(MAX - 1).collect::<String>();
-        text.push('…');
-        text
-    }
-}
-
 pub(super) fn draw_io_widget(
     frame: &mut Frame,
     area: Rect,
@@ -288,6 +309,7 @@ pub(super) fn draw_io_widget(
     write_color: Color,
     mode: ChartMode,
     interval: Duration,
+    style: TuiStyle,
 ) {
     let read_current = read_history.back().copied().unwrap_or_default();
     let write_current = write_history.back().copied().unwrap_or_default();
@@ -307,6 +329,7 @@ pub(super) fn draw_io_widget(
             max_value,
             GraphType::Line,
             interval,
+            style,
         ),
         ChartMode::Scatter => draw_dual_chart(
             frame,
@@ -317,6 +340,7 @@ pub(super) fn draw_io_widget(
             max_value,
             GraphType::Scatter,
             interval,
+            style,
         ),
         ChartMode::Bar => draw_bar_chart(
             frame,
@@ -328,6 +352,7 @@ pub(super) fn draw_io_widget(
             ],
             max_value.round() as u64,
             read_color,
+            style,
         ),
         ChartMode::Sparkline => {
             let chunks = Layout::default()
@@ -341,6 +366,7 @@ pub(super) fn draw_io_widget(
                 read_history,
                 max_value,
                 read_color,
+                style,
             );
             draw_sparkline(
                 frame,
@@ -349,6 +375,7 @@ pub(super) fn draw_io_widget(
                 write_history,
                 max_value,
                 write_color,
+                style,
             );
         }
         ChartMode::Gauge => {
@@ -362,6 +389,7 @@ pub(super) fn draw_io_widget(
                 &io_panel_title(title, "R", read_current),
                 read_current / max_value * 100.0,
                 read_color,
+                style,
             );
             draw_gauge_panel(
                 frame,
@@ -369,13 +397,10 @@ pub(super) fn draw_io_widget(
                 &io_panel_title(title, "W", write_current),
                 write_current / max_value * 100.0,
                 write_color,
+                style,
             );
         }
     }
-}
-
-fn io_panel_title(title: &str, label: &str, current: f64) -> String {
-    format!("{title} | {label} {}", telemetry::format_rate(current))
 }
 
 pub(super) fn draw_bar_chart(
@@ -385,6 +410,7 @@ pub(super) fn draw_bar_chart(
     data: Vec<(String, u64)>,
     max_value: u64,
     color: Color,
+    style: TuiStyle,
 ) {
     let bars = data
         .iter()
@@ -397,7 +423,7 @@ pub(super) fn draw_bar_chart(
         .collect::<Vec<_>>();
     let group = BarGroup::default().bars(&bars);
     let chart = BarChart::default()
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .data(group)
         .max(max_value.max(1))
         .bar_width(3)
@@ -413,10 +439,11 @@ pub(super) fn draw_gauge_panel(
     title: &str,
     percent: f64,
     color: Color,
+    style: TuiStyle,
 ) {
     let percent = percent.clamp(0.0, 100.0);
     let gauge = Gauge::default()
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .gauge_style(
             Style::default()
                 .fg(color)
@@ -427,10 +454,10 @@ pub(super) fn draw_gauge_panel(
     frame.render_widget(gauge, area);
 }
 
-pub(super) fn draw_empty(frame: &mut Frame, area: Rect, text: &str) {
+pub(super) fn draw_empty(frame: &mut Frame, area: Rect, text: &str, style: TuiStyle) {
     frame.render_widget(
         Paragraph::new(text.to_string())
-            .block(Block::bordered())
+            .block(style.block())
             .wrap(Wrap { trim: true }),
         area,
     );

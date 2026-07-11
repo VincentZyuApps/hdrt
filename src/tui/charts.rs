@@ -5,11 +5,12 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::symbols;
 use ratatui::text::Span;
-use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType, Sparkline};
+use ratatui::widgets::{Axis, Chart, Dataset, GraphType, Sparkline};
 use ratatui::Frame;
 
 use crate::telemetry;
 
+use super::style::TuiStyle;
 use super::utils::{format_metric, history_points, MetricKind};
 use super::widgets::draw_bar_chart;
 
@@ -23,6 +24,7 @@ pub(super) fn draw_chart(
     graph_type: GraphType,
     kind: MetricKind,
     interval: Duration,
+    style: TuiStyle,
 ) {
     let points = history_points(history);
     let x_max = points.len().saturating_sub(1).max(1) as f64;
@@ -33,7 +35,7 @@ pub(super) fn draw_chart(
         .style(Style::default().fg(color))
         .data(&points);
     let chart = Chart::new(vec![dataset])
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .x_axis(
             Axis::default()
                 .bounds([0.0, x_max])
@@ -59,6 +61,7 @@ pub(super) fn draw_dual_chart(
     max_value: f64,
     graph_type: GraphType,
     interval: Duration,
+    style: TuiStyle,
 ) {
     let read_points = history_points(read_history);
     let write_points = history_points(write_history);
@@ -80,7 +83,7 @@ pub(super) fn draw_dual_chart(
         .style(Style::default().fg(Color::Yellow))
         .data(&write_points);
     let chart = Chart::new(vec![read, write])
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .x_axis(
             Axis::default()
                 .bounds([0.0, x_max])
@@ -108,13 +111,14 @@ pub(super) fn draw_sparkline(
     history: &VecDeque<f64>,
     max_value: f64,
     color: Color,
+    style: TuiStyle,
 ) {
     let data = history
         .iter()
         .map(|value| value.round().max(0.0) as u64)
         .collect::<Vec<_>>();
     let sparkline = Sparkline::default()
-        .block(Block::bordered().title(title.to_string()))
+        .block(style.block().title(title.to_string()))
         .data(&data)
         .max(max_value.round().max(1.0) as u64)
         .style(Style::default().fg(color));
@@ -130,6 +134,7 @@ pub(super) fn draw_history_bars(
     color: Color,
     kind: MetricKind,
     interval: Duration,
+    style: TuiStyle,
 ) {
     let visible = (area.width / 4).clamp(2, 40) as usize;
     let skip = history.len().saturating_sub(visible);
@@ -156,6 +161,7 @@ pub(super) fn draw_history_bars(
         bars,
         max_value.round().max(1.0) as u64,
         color,
+        style,
     );
 }
 

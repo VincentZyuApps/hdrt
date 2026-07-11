@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use super::command::Command;
-use super::options::{Backend, DetailLevel, OutputFormat, SpinnerStyle};
+use super::options::{Backend, DetailLevel, RenderFormat, SpinnerStyle, TableStyle};
 use crate::i18n::Lang;
 
 #[derive(Debug, Clone, Parser)]
@@ -13,8 +13,13 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Command>,
 
-    #[arg(long, global = true, value_enum, default_value_t = OutputFormat::Table)]
-    pub format: OutputFormat,
+    /// CLI render format.
+    #[arg(long, global = true, value_enum, default_value_t = RenderFormat::Table)]
+    pub format: RenderFormat,
+
+    /// CLI table style. Alias: --table-style.
+    #[arg(long, visible_alias = "table-style", global = true, value_enum)]
+    pub style: Option<TableStyle>,
 
     #[arg(long, global = true, value_enum, default_value_t = DetailLevel::Basic)]
     pub detail: DetailLevel,
@@ -37,6 +42,14 @@ pub struct Cli {
     #[arg(short = 'e', long, global = true)]
     pub emoji: bool,
 
+    /// Disable ANSI colors in CLI output and TUI chrome.
+    #[arg(long, global = true)]
+    pub no_color: bool,
+
+    /// Disable ANSI bold text in CLI output and TUI chrome.
+    #[arg(long, global = true)]
+    pub no_bold: bool,
+
     /// Display language for help, table, markdown, and TUI output.
     #[arg(long, global = true, value_enum, default_value_t = Lang::EnUs)]
     pub lang: Lang,
@@ -44,4 +57,18 @@ pub struct Cli {
     /// Print additional collector diagnostics after normal output.
     #[arg(long, global = true)]
     pub debug: bool,
+}
+
+impl Cli {
+    pub fn table_style(&self) -> TableStyle {
+        self.style.unwrap_or_default()
+    }
+
+    pub fn color_enabled(&self) -> bool {
+        !self.no_color && std::env::var_os("NO_COLOR").is_none()
+    }
+
+    pub fn bold_enabled(&self) -> bool {
+        !self.no_bold
+    }
 }

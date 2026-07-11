@@ -3,6 +3,8 @@ use std::path::Path;
 
 use crate::i18n::Lang;
 
+mod render;
+
 pub fn try_print_localized_help() -> bool {
     let args = std::env::args_os().collect::<Vec<_>>();
     let Some(request) = HelpRequest::from_args(&args) else {
@@ -13,7 +15,7 @@ pub fn try_print_localized_help() -> bool {
         return false;
     }
 
-    println!("{}", super::help_render::render_help(&request));
+    println!("{}", render::render_help(&request));
     true
 }
 
@@ -236,11 +238,15 @@ fn option_takes_value(token: &str) -> bool {
     matches!(
         token,
         "--format"
+            | "--style"
+            | "--table-style"
             | "--detail"
             | "--backend"
             | "--spinner-style"
             | "--tab"
             | "--chart-mode"
+            | "--border"
+            | "--tui-border"
             | "--interval"
     )
 }

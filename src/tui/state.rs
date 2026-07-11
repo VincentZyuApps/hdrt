@@ -3,12 +3,13 @@ use std::time::Duration;
 
 use crossterm::event::KeyCode;
 
-use crate::app::options::{ChartMode, TuiTab};
+use crate::app::options::{ChartMode, TuiBorder, TuiTab};
 use crate::collector::{self, CollectOptions};
 use crate::hardware::HardwareReport;
 use crate::i18n::{t, Lang};
 use crate::telemetry::{self, DiskTelemetry, TelemetrySampler, TelemetrySnapshot, HISTORY_LIMIT};
 
+use super::style::TuiStyle;
 use super::utils::{push_history, tab_index};
 
 const TAB_COUNT: usize = 7;
@@ -33,6 +34,7 @@ pub(super) struct TuiState {
     pub(super) logical_disk_scroll: usize,
     pub(super) chart_mode: ChartMode,
     pub(super) status: String,
+    pub(super) style: TuiStyle,
 }
 
 impl TuiState {
@@ -43,6 +45,9 @@ impl TuiState {
         options: CollectOptions,
         interval_ms: u64,
         initial_chart_mode: ChartMode,
+        border: TuiBorder,
+        color: bool,
+        bold: bool,
     ) -> Self {
         let report = collector::collect_report(options);
         let mut state = Self {
@@ -65,6 +70,7 @@ impl TuiState {
             logical_disk_scroll: 0,
             chart_mode: initial_chart_mode,
             status: String::new(),
+            style: TuiStyle::new(border, color, bold),
         };
         state.sample();
         state.status = format!(

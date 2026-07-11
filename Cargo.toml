@@ -1,6 +1,6 @@
 [package]
 name = "hdrt"
-version = "0.2.3-alpha.24"
+version = "0.2.3-alpha.25"
 edition = "2021"
 description = "Hardware Device Rust Ratatui: a cross-platform hardware info CLI/TUI"
 license = "MIT"

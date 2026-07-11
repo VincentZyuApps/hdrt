@@ -1,13 +1,17 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, List, ListItem, Paragraph, Wrap};
+use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::hardware::DiskInfo;
 use crate::i18n::{display_value, t};
 use crate::telemetry;
 
+use super::selection::{
+    append_disk_kv, append_disk_sep, disk_heading_value_style, disk_item_style, disk_marker,
+    disk_rate_style, disk_value_style,
+};
 use super::state::TuiState;
 use super::utils::{
     collect_warnings, disk_label, health_color, label, push_kv, warning_percent,
@@ -55,7 +59,7 @@ pub(super) fn draw_motherboard(frame: &mut Frame, area: Rect, state: &TuiState) 
         lines.push(Line::from(t(state.lang, "no_data")));
     }
 
-    let block = Block::bordered().title(label(
+    let block = state.style.block().title(label(
         state.lang,
         "section.motherboard",
         state.emoji,
@@ -84,6 +88,7 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
         t(state.lang, "tui.cpu_total"),
         state.latest.cpu_total_percent,
         Color::Cyan,
+        state.style,
     );
     draw_gauge_panel(
         frame,
@@ -91,6 +96,7 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
         t(state.lang, "tui.memory_used"),
         state.latest.memory.used_percent,
         Color::Magenta,
+        state.style,
     );
     draw_gauge_panel(
         frame,
@@ -98,6 +104,7 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
         &format!("{} {}", t(state.lang, "warnings"), warnings.len()),
         warning_percent(warnings.len()),
         Color::Red,
+        state.style,
     );
 
     let mut lines = Vec::new();
@@ -131,7 +138,7 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
 
     frame.render_widget(
         Paragraph::new(lines)
-            .block(Block::bordered().title(label(state.lang, "section.health", state.emoji)))
+            .block(state.style.block().title(label(state.lang, "section.health", state.emoji)))
             .wrap(Wrap { trim: true }),
         chunks[1],
     );
@@ -140,7 +147,12 @@ pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
 pub(super) fn draw_warnings(frame: &mut Frame, area: Rect, state: &TuiState) {
     let warnings = collect_warnings(&state.report);
     if warnings.is_empty() {
-        draw_empty(frame, area, t(state.lang, "tui.no_warnings"));
+        draw_empty(
+            frame,
+            area,
+            t(state.lang, "tui.no_warnings"),
+            state.style,
+        );
         return;
     }
 
@@ -169,7 +181,7 @@ pub(super) fn draw_warnings(frame: &mut Frame, area: Rect, state: &TuiState) {
         })
         .collect::<Vec<_>>();
 
-    let list = List::new(items).block(Block::bordered().title(label(
+    let list = List::new(items).block(state.style.block().title(label(
         state.lang,
         "warnings",
         state.emoji,
@@ -272,7 +284,7 @@ pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &mut TuiState
         })
         .collect::<Vec<_>>();
     frame.render_widget(
-        List::new(items).block(Block::bordered().title(title)),
+        List::new(items).block(state.style.block().title(title)),
         area,
     );
 }
@@ -368,7 +380,7 @@ pub(super) fn draw_physical_disk_list(frame: &mut Frame, area: Rect, state: &mut
         })
         .collect::<Vec<_>>();
     frame.render_widget(
-        List::new(items).block(Block::bordered().title(title)),
+        List::new(items).block(state.style.block().title(title)),
         area,
     );
 }
@@ -414,69 +426,10 @@ fn fit_disk_scroll(
 fn draw_disk_list_too_small(frame: &mut Frame, area: Rect, title: &str, state: &TuiState) {
     frame.render_widget(
         Paragraph::new(t(state.lang, "tui.too_small"))
-            .block(Block::bordered().title(title.to_string()))
+            .block(state.style.block().title(title.to_string()))
             .wrap(Wrap { trim: true }),
         area,
     );
-}
-
-fn disk_marker(selected: bool) -> Span<'static> {
-    if selected {
-        Span::styled("> ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-    } else {
-        Span::styled("  ", Style::default().fg(Color::DarkGray))
-    }
-}
-
-fn disk_item_style(selected: bool) -> Style {
-    if selected {
-        Style::default().bg(Color::DarkGray)
-    } else {
-        Style::default()
-    }
-}
-
-fn append_disk_kv(
-    spans: &mut Vec<Span<'static>>,
-    key: &str,
-    value: String,
-    selected: bool,
-    value_style: Style,
-) {
-    spans.push(Span::styled(format!("{key}: "), disk_key_style(selected)));
-    spans.push(Span::styled(value, value_style));
-}
-
-fn append_disk_sep(spans: &mut Vec<Span<'static>>) {
-    spans.push(Span::styled(" | ", Style::default().fg(Color::DarkGray)));
-}
-
-fn disk_key_style(selected: bool) -> Style {
-    let mut style = Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD);
-    if selected {
-        style = style.add_modifier(Modifier::UNDERLINED);
-    }
-    style
-}
-
-fn disk_value_style(selected: bool) -> Style {
-    let mut style = Style::default().fg(Color::White);
-    if selected {
-        style = style.add_modifier(Modifier::BOLD);
-    }
-    style
-}
-
-fn disk_heading_value_style(selected: bool) -> Style {
-    disk_value_style(selected).add_modifier(Modifier::BOLD)
-}
-
-fn disk_rate_style(selected: bool, color: Color) -> Style {
-    let mut style = Style::default().fg(color);
-    if selected {
-        style = style.add_modifier(Modifier::BOLD);
-    }
-    style
 }
 
 pub(super) fn draw_memory_inventory(frame: &mut Frame, area: Rect, state: &TuiState) {
@@ -498,7 +451,7 @@ pub(super) fn draw_memory_inventory(frame: &mut Frame, area: Rect, state: &TuiSt
     }
     frame.render_widget(
         Paragraph::new(lines)
-            .block(Block::bordered().title(label(state.lang, "section.memory", state.emoji)))
+            .block(state.style.block().title(label(state.lang, "section.memory", state.emoji)))
             .wrap(Wrap { trim: true }),
         area,
     );

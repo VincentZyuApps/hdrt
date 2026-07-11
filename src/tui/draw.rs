@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::Color;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Paragraph, Tabs, Wrap};
+use ratatui::widgets::{Paragraph, Tabs, Wrap};
 use ratatui::Frame;
 
 use crate::emoji;
@@ -15,7 +15,7 @@ use super::utils::tab_titles;
 pub(super) fn draw(frame: &mut Frame, state: &mut TuiState) {
     let area = frame.area();
     if area.width < 50 || area.height < 12 {
-        draw_too_small(frame, area, state.lang);
+        draw_too_small(frame, area, state);
         return;
     }
 
@@ -56,13 +56,12 @@ fn draw_tabs(frame: &mut Frame, area: Rect, state: &TuiState) {
     );
     let tabs = Tabs::new(titles.iter().cloned())
         .select(state.tab)
-        .block(Block::bordered().title(title))
-        .style(Style::default().fg(Color::Gray))
-        .highlight_style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        );
+        .block(state.style.block().title(Line::from(Span::styled(
+            title,
+            state.style.text(Color::Cyan, true),
+        ))))
+        .style(state.style.text(Color::Gray, false))
+        .highlight_style(state.style.text(Color::Cyan, true));
     frame.render_widget(tabs, area);
 }
 
@@ -71,16 +70,16 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &TuiState) {
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             help,
-            Style::default().fg(Color::Yellow),
+            state.style.text(Color::Yellow, false),
         ))),
         area,
     );
 }
 
-fn draw_too_small(frame: &mut Frame, area: Rect, lang: Lang) {
+fn draw_too_small(frame: &mut Frame, area: Rect, state: &TuiState) {
     frame.render_widget(
-        Paragraph::new(t(lang, "tui.too_small"))
-            .block(Block::bordered().title("hdrt"))
+        Paragraph::new(t(state.lang, "tui.too_small"))
+            .block(state.style.block().title("hdrt"))
             .wrap(Wrap { trim: true }),
         area,
     );

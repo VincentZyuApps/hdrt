@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::hardware::{unknown, DiskInfo};
 
-use super::command::{format_bytes, non_empty_or_unknown};
+use super::super::command::{format_bytes, non_empty_or_unknown};
 
 pub(super) fn collect() -> Vec<DiskInfo> {
     let Ok(entries) = fs::read_dir("/sys/block") else {

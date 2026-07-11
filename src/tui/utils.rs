@@ -138,3 +138,25 @@ pub(super) fn health_color(value: &str) -> Color {
         Color::Red
     }
 }
+
+pub(super) fn gauge_bar(percent: f64, width: usize) -> String {
+    let filled = ((percent / 100.0) * width as f64).round() as usize;
+    let empty = width.saturating_sub(filled);
+    format!("[{}{}]", "█".repeat(filled), "░".repeat(empty))
+}
+
+pub(super) fn short_label(value: &str) -> String {
+    let value = value.trim();
+    const MAX: usize = 14;
+    if value.chars().count() <= MAX {
+        value.to_string()
+    } else {
+        let mut text = value.chars().take(MAX - 1).collect::<String>();
+        text.push('…');
+        text
+    }
+}
+
+pub(super) fn io_panel_title(title: &str, label: &str, current: f64) -> String {
+    format!("{title} | {label} {}", telemetry::format_rate(current))
+}

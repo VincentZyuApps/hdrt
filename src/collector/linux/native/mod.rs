@@ -1,10 +1,13 @@
 use crate::hardware::{HardwareReport, HdrtWarning};
 
+mod disk;
+mod memory;
+
 pub(super) fn collect_report() -> HardwareReport {
     let mut report = HardwareReport {
-        physical_disks: super::native_disk::collect(),
+        physical_disks: disk::collect(),
         logical_disks: Vec::new(),
-        memory: super::native_memory::collect(),
+        memory: memory::collect(),
         cpu: super::cpu::collect(),
         motherboard: super::motherboard::collect(),
         warnings: Vec::new(),

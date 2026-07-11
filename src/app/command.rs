@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-use super::options::{ChartMode, TuiTab};
+use super::options::{ChartMode, TuiBorder, TuiTab};
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
@@ -36,6 +36,14 @@ pub enum Command {
         /// Initial TUI chart mode.
         #[arg(long, value_enum, default_value_t = ChartMode::Gauge)]
         chart_mode: ChartMode,
+        /// TUI panel border style.
+        #[arg(
+            long,
+            visible_alias = "tui-border",
+            value_enum,
+            default_value_t = TuiBorder::Rounded
+        )]
+        border: TuiBorder,
         /// TUI refresh interval in milliseconds.
         #[arg(short = 't', long, default_value_t = crate::telemetry::DEFAULT_INTERVAL_MS)]
         interval: u64,

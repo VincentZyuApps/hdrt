@@ -90,6 +90,7 @@ hdrt --spinner-style ascii bench
 hdrt tui
 hdrt tui -t 1000
 hdrt tui --chart-mode bar
+hdrt tui --border rounded
 ```
 
 别名：
@@ -168,6 +169,8 @@ hdrt tui --tab cpu
 hdrt tui --tab physical-disk --chart-mode gauge
 hdrt tui --tab logical-disk --chart-mode bar -t 1000
 hdrt tui --interval 1000
+hdrt tui --border double
+hdrt tui --tui-border thick
 ```
 
 TUI 快捷键：
@@ -180,14 +183,16 @@ TUI 快捷键：
 
 `--chart-mode` 只设置启动时的初始图表模式。启动后，`z` / `c` 会从该位置继续按同一个固定顺序循环。
 
+`--border` 选择 Ratatui 面板边框：`rounded`、`plain`、`double` 或 `thick`。`--tui-border` 是它的别名；`round` 是 `rounded` 的别名，`square` 是 `plain` 的别名。
+
 默认刷新间隔是 `1000` ms。低于 `250` ms 的值会被钳制到 `250` ms。
 
-## 🧾 输出格式
+## 🧾 渲染格式
 
 ```bash
 hdrt disk --format table
-hdrt disk --format wide
-hdrt disk --format compact
+hdrt disk --style modern
+hdrt disk --style psql
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt physical-disk --format table
@@ -196,10 +201,14 @@ hdrt all --lang zh-cn
 hdrt physical-disk --detail smart
 ```
 
-表格样式：
+CLI 渲染样式：
 
-- `table` 和 `wide` 目前使用相同的圆角表格布局。
-- `compact` 使用 modern 边框表格样式；它是视觉样式，不是删列压缩视图。
+- `--format` 选择 CLI 渲染格式：`table`、`json` 或 `markdown`。
+- `--style` 选择 CLI 表格样式：`rounded`、`modern`、`sharp`、`psql`、`ascii` 或 `blank`。
+- `--table-style` 是 `--style` 的别名；`round` 是 `rounded` 的别名，`plain` 是 `ascii` 的别名。
+- 旧版 compact 风格现在对应 `--style modern`。
+- CLI 的 `--style` 不影响 Ratatui；TUI 面板请使用 `hdrt tui --border <BORDER>`。
+- `--no-color` 会禁用 ANSI 颜色，`--no-bold` 会禁用粗体文本。
 
 显示语言：
 

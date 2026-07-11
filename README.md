@@ -90,6 +90,7 @@ hdrt --spinner-style ascii bench
 hdrt tui
 hdrt tui -t 1000
 hdrt tui --chart-mode bar
+hdrt tui --border rounded
 ```
 
 Aliases:
@@ -168,6 +169,8 @@ hdrt tui --tab cpu
 hdrt tui --tab physical-disk --chart-mode gauge
 hdrt tui --tab logical-disk --chart-mode bar -t 1000
 hdrt tui --interval 1000
+hdrt tui --border double
+hdrt tui --tui-border thick
 ```
 
 TUI controls:
@@ -180,14 +183,16 @@ TUI controls:
 
 `--chart-mode` only sets the initial chart mode. After startup, `z` / `c` continue from that position in the same fixed cycle.
 
+`--border` selects the Ratatui panel border: `rounded`, `plain`, `double`, or `thick`. `--tui-border` is an alias; `round` aliases `rounded`, and `square` aliases `plain`.
+
 The default refresh interval is `1000` ms. Values below `250` ms are clamped to `250` ms.
 
-## 🧾 Output Formats
+## 🧾 Render Formats
 
 ```bash
 hdrt disk --format table
-hdrt disk --format wide
-hdrt disk --format compact
+hdrt disk --style modern
+hdrt disk --style psql
 hdrt disk --format json
 hdrt disk --format markdown
 hdrt physical-disk --format table
@@ -196,10 +201,14 @@ hdrt all --lang zh-cn
 hdrt physical-disk --detail smart
 ```
 
-Table styles:
+CLI render styles:
 
-- `table` and `wide` currently use the same rounded table layout.
-- `compact` uses the modern bordered table style; it is a visual style, not a reduced-column view.
+- `--format` selects the CLI render format: `table`, `json`, or `markdown`.
+- `--style` selects the CLI table style: `rounded`, `modern`, `sharp`, `psql`, `ascii`, or `blank`.
+- `--table-style` is an alias for `--style`; `round` aliases `rounded`, and `plain` aliases `ascii`.
+- The old compact-style output is now `--style modern`.
+- CLI `--style` does not affect Ratatui; use `hdrt tui --border <BORDER>` for TUI panels.
+- `--no-color` disables ANSI colors, and `--no-bold` disables bold text.
 
 Display languages:
 

@@ -40,6 +40,8 @@ pub fn icon(key: &str) -> Option<&'static str> {
         "bench.memory" => Some("🧠"),
         "bench.warnings" => Some("⚠️"),
         "bench.note" => Some("📝"),
+        "debug.summary" => Some("🧪"),
+        "debug.records" => Some("🧾"),
         "disk.device" => Some("🔢"),
         "disk.model" => Some("🏷️"),
         "disk.serial" => Some("🔐"),

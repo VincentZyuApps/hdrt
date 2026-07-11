@@ -3,12 +3,12 @@ mod cpu;
 mod disk;
 mod memory;
 mod motherboard;
-mod native_storage;
-mod native_wmi;
 pub(crate) mod privilege;
 mod registry;
 mod shell;
+mod storage;
 mod util;
+mod wmi;
 
 use crate::app::options::Backend;
 use crate::collector::CollectOptions;
@@ -40,7 +40,7 @@ pub fn benchmark_report(options: CollectOptions) -> BenchmarkReport {
 }
 
 fn collect_auto(options: CollectOptions) -> HardwareReport {
-    match native_wmi::collect_report(options) {
+    match wmi::collect_report(options) {
         Ok(mut report) => {
             add_administrator_warning(&mut report);
             report
@@ -72,7 +72,7 @@ fn collect_auto(options: CollectOptions) -> HardwareReport {
 }
 
 fn collect_native(options: CollectOptions) -> HardwareReport {
-    match native_wmi::collect_report(options) {
+    match wmi::collect_report(options) {
         Ok(mut report) => {
             add_administrator_warning(&mut report);
             report

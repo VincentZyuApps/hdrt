@@ -57,6 +57,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Cyan,
         state.chart_mode,
         state.interval,
+        state.style,
     );
     draw_history_widget(
         frame,
@@ -72,6 +73,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Magenta,
         state.chart_mode,
         state.interval,
+        state.style,
     );
     draw_io_widget(
         frame,
@@ -83,6 +85,7 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Yellow,
         state.chart_mode,
         state.interval,
+        state.style,
     );
 }
 
@@ -109,6 +112,7 @@ pub(super) fn draw_cpu(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Cyan,
         state.chart_mode,
         state.interval,
+        state.style,
     );
 }
 
@@ -134,6 +138,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
         ),
         state.latest.memory.used_percent,
         Color::Magenta,
+        state.style,
     );
     draw_gauge_panel(
         frame,
@@ -146,6 +151,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
         ),
         state.latest.memory.swap_used_percent,
         Color::Yellow,
+        state.style,
     );
 
     if chunks[1].width >= 110 && !state.report.memory.is_empty() {
@@ -163,6 +169,7 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
             Color::Magenta,
             state.chart_mode,
             state.interval,
+            state.style,
         );
         draw_memory_inventory(frame, body[1], state);
     } else {
@@ -176,13 +183,14 @@ pub(super) fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
             Color::Magenta,
             state.chart_mode,
             state.interval,
+            state.style,
         );
     }
 }
 
 pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &mut TuiState) {
     if state.report.physical_disks.is_empty() {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     }
 
@@ -208,12 +216,13 @@ pub(super) fn draw_physical_disk(frame: &mut Frame, area: Rect, state: &mut TuiS
         None,
         state.chart_mode,
         Color::Cyan,
+        state.style,
     );
 }
 
 pub(super) fn draw_logical_disk(frame: &mut Frame, area: Rect, state: &mut TuiState) {
     if state.latest.disks.is_empty() {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     }
 
@@ -249,12 +258,13 @@ fn draw_selected_physical_disk_gauge(frame: &mut Frame, area: Rect, state: &TuiS
         ),
         selected_size / max_size * 100.0,
         Color::Cyan,
+        state.style,
     );
 }
 
 fn draw_selected_logical_disk_gauge(frame: &mut Frame, area: Rect, state: &TuiState) {
     let Some(disk) = state.selected_disk() else {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     };
     draw_gauge_panel(
@@ -269,16 +279,17 @@ fn draw_selected_logical_disk_gauge(frame: &mut Frame, area: Rect, state: &TuiSt
         ),
         disk.used_percent,
         Color::Green,
+        state.style,
     );
 }
 
 fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
     let Some(disk) = state.selected_disk() else {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     };
     let Some(history) = state.selected_disk_history() else {
-        draw_empty(frame, area, t(state.lang, "no_data"));
+        draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     };
 
@@ -293,6 +304,7 @@ fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Yellow,
         state.chart_mode,
         state.interval,
+        state.style,
     );
 }
 
@@ -312,6 +324,7 @@ fn draw_summary_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
         t(state.lang, "tui.cpu_total"),
         state.latest.cpu_total_percent,
         Color::Cyan,
+        state.style,
     );
     draw_gauge_panel(
         frame,
@@ -323,6 +336,7 @@ fn draw_summary_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
         ),
         state.latest.memory.used_percent,
         Color::Magenta,
+        state.style,
     );
     draw_gauge_panel(
         frame,
@@ -341,6 +355,7 @@ fn draw_summary_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
         ),
         average_disk_used_percent(&state.latest.disks),
         Color::Green,
+        state.style,
     );
 }
 

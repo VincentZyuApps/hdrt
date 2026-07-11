@@ -1,6 +1,6 @@
 use crate::i18n::Lang;
 
-use super::help::{HelpCommand, HelpRequest};
+use super::{HelpCommand, HelpRequest};
 
 const COMMANDS: &[HelpCommand] = &[
     HelpCommand::Disk,
@@ -162,8 +162,20 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 emoji,
                 "📋",
                 "--format <FORMAT>",
-                "Output format.",
-                &["[default: table]", "[possible values: table, wide, compact, json, markdown]"],
+                "CLI render format.",
+                &["[default: table]", "[possible values: table, json, markdown]"],
+            );
+            push_option(
+                lines,
+                emoji,
+                "🎨",
+                "--style <STYLE>",
+                "CLI table style. Alias: --table-style.",
+                &[
+                    "[default: rounded]",
+                    "[possible values: rounded, modern, sharp, psql, ascii, blank]",
+                    "[aliases: round -> rounded, plain -> ascii]",
+                ],
             );
             push_option(
                 lines,
@@ -212,6 +224,22 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
             push_option(
                 lines,
                 emoji,
+                "🎨",
+                "--no-color",
+                "Disable ANSI colors in CLI output and TUI chrome.",
+                &[],
+            );
+            push_option(
+                lines,
+                emoji,
+                "🔠",
+                "--no-bold",
+                "Disable ANSI bold text in CLI output and TUI chrome.",
+                &[],
+            );
+            push_option(
+                lines,
+                emoji,
                 "🌐",
                 "--lang <LANG>",
                 "Display language for help, table, markdown, and TUI output.",
@@ -234,8 +262,20 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 emoji,
                 "📋",
                 "--format <FORMAT>",
-                "输出格式。",
-                &["[默认: table]", "[可选值: table, wide, compact, json, markdown]"],
+                "CLI 渲染格式。",
+                &["[默认: table]", "[可选值: table, json, markdown]"],
+            );
+            push_option(
+                lines,
+                emoji,
+                "🎨",
+                "--style <STYLE>",
+                "CLI 表格样式。别名：--table-style。",
+                &[
+                    "[默认: rounded]",
+                    "[可选值: rounded, modern, sharp, psql, ascii, blank]",
+                    "[别名: round -> rounded, plain -> ascii]",
+                ],
             );
             push_option(
                 lines,
@@ -272,6 +312,22 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 "✨",
                 "-e, --emoji",
                 "启用 CLI 输出、帮助和 TUI 的 emoji 装饰。",
+                &[],
+            );
+            push_option(
+                lines,
+                emoji,
+                "🎨",
+                "--no-color",
+                "禁用 CLI 输出和 TUI 外框的 ANSI 颜色。",
+                &[],
+            );
+            push_option(
+                lines,
+                emoji,
+                "🔠",
+                "--no-bold",
+                "禁用 CLI 输出和 TUI 外框的粗体样式。",
                 &[],
             );
             push_option(
@@ -325,6 +381,18 @@ fn push_tui_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
             push_option(
                 lines,
                 emoji,
+                "▣",
+                "--border <BORDER>",
+                "TUI panel border style. Alias: --tui-border.",
+                &[
+                    "[default: rounded]",
+                    "[possible values: rounded, plain, double, thick]",
+                    "[aliases: round -> rounded, square -> plain]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
                 "⏱️",
                 "-t, --interval <INTERVAL>",
                 "TUI refresh interval in milliseconds.",
@@ -353,6 +421,18 @@ fn push_tui_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 &[
                     "[默认: gauge]",
                     "[循环: gauge, bar, sparkline, line, scatter]",
+                ],
+            );
+            push_option(
+                lines,
+                emoji,
+                "▣",
+                "--border <BORDER>",
+                "TUI 面板边框样式。别名：--tui-border。",
+                &[
+                    "[默认: rounded]",
+                    "[可选值: rounded, plain, double, thick]",
+                    "[别名: round -> rounded, square -> plain]",
                 ],
             );
             push_option(
