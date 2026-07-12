@@ -33,14 +33,6 @@ pub fn first_known(values: &[String]) -> String {
         .unwrap_or_else(|| "Unknown".to_string())
 }
 
-pub fn clean_manufacturer(value: &str) -> String {
-    if value == "(Standard disk drives)" || value.trim().is_empty() {
-        "Unknown".to_string()
-    } else {
-        value.trim().to_string()
-    }
-}
-
 pub fn format_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut value = bytes as f64;
