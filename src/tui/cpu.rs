@@ -20,7 +20,7 @@ pub(super) fn draw_core_gauges(frame: &mut Frame, area: Rect, state: &TuiState) 
         return;
     }
 
-    let rows = (cores.len() + 1) / 2;
+    let rows = cores.len().div_ceil(2);
     let visible_rows = area.height.saturating_sub(2) as usize;
     let column_width = cpu_column_width(area.width);
     let lines = (0..rows.min(visible_rows))

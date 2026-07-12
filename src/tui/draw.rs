@@ -5,7 +5,7 @@ use ratatui::widgets::{Paragraph, Tabs, Wrap};
 use ratatui::Frame;
 
 use crate::emoji;
-use crate::i18n::{t, Lang};
+use crate::i18n::t;
 
 use super::panels::{draw_motherboard, draw_warnings};
 use super::screens::{draw_cpu, draw_logical_disk, draw_memory, draw_overview, draw_physical_disk};

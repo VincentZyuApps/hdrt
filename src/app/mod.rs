@@ -1,8 +1,10 @@
 pub mod cli;
 pub mod command;
-pub mod options;
 mod help;
+pub mod options;
 pub(crate) mod spinner;
+#[cfg(test)]
+mod tests;
 
 use anyhow::{bail, Result};
 use clap::Parser;
@@ -19,6 +21,10 @@ use options::RenderFormat;
 use spinner::Spinner;
 
 pub fn run() -> Result<()> {
+    if crate::build_info::try_print_version() {
+        return Ok(());
+    }
+
     if help::try_print_localized_help() {
         return Ok(());
     }
@@ -28,9 +34,7 @@ pub fn run() -> Result<()> {
 }
 
 fn execute(cli: Cli) -> Result<()> {
-    if cli.format != RenderFormat::Table && cli.style.is_some() {
-        bail!("--style/--table-style only applies to --format table");
-    }
+    validate_cli(&cli)?;
 
     let command = cli.command.clone().unwrap_or(Command::All);
 
@@ -67,6 +71,13 @@ fn execute(cli: Cli) -> Result<()> {
             cli.bold_enabled(),
         ),
     }
+}
+
+fn validate_cli(cli: &Cli) -> Result<()> {
+    if cli.format != RenderFormat::Table && cli.style.is_some() {
+        bail!("--style/--table-style only applies to --format table");
+    }
+    Ok(())
 }
 
 fn print_doctor(cli: &Cli) -> Result<()> {

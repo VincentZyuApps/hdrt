@@ -37,10 +37,7 @@ pub(super) fn render_report(
             emoji,
         ));
     }
-    if matches!(
-        section,
-        Section::Disk | Section::LogicalDisk | Section::All
-    ) {
+    if matches!(section, Section::Disk | Section::LogicalDisk | Section::All) {
         output.push(render_logical_disks(
             report,
             table_style,
@@ -422,7 +419,10 @@ fn section_with_table(
         return format!("{title}\n{}", t(lang, "no_data"));
     }
 
-    format!("{title}\n{}", make_table(headers, rows, table_style, text_style))
+    format!(
+        "{title}\n{}",
+        make_table(headers, rows, table_style, text_style)
+    )
 }
 
 fn make_table(
@@ -431,6 +431,7 @@ fn make_table(
     table_style: TableStyle,
     text_style: TextStyle,
 ) -> String {
+    let styled_headers = headers.clone();
     let mut builder = Builder::default();
     builder.push_record(headers);
     for row in rows {
@@ -446,7 +447,7 @@ fn make_table(
         TableStyle::Ascii => table.with(Style::ascii()),
         TableStyle::Blank => table.with(Style::blank()),
     };
-    style_table_header(table.to_string(), table_style, text_style)
+    style_table_header(table.to_string(), &styled_headers, table_style, text_style)
 }
 
 fn headers(keys: &[&str], lang: Lang, emoji: bool) -> Vec<String> {

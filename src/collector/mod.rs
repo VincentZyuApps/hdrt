@@ -2,9 +2,14 @@ pub mod options;
 
 mod benchmark;
 mod capability;
+#[cfg(any(target_os = "android", test))]
+mod df;
 mod logical_disk;
+#[cfg(any(target_os = "android", target_os = "linux", test))]
+mod sysfs;
 
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", test))]
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
 mod android;
 #[cfg(target_os = "linux")]
 mod linux;
@@ -30,7 +35,9 @@ use crate::hardware::{HardwareReport, LogicalDiskInfo};
 
 pub fn collect_report(options: CollectOptions) -> HardwareReport {
     let mut report = platform::collect_report(options);
-    report.logical_disks = collect_logical_disks();
+    if report.logical_disks.is_empty() {
+        report.logical_disks = collect_logical_disks();
+    }
     report
 }
 

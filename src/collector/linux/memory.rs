@@ -92,3 +92,19 @@ fn flush_memory(devices: &mut Vec<MemoryDevice>, current: Option<MemoryDevice>) 
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_populated_dmidecode_memory_slots() {
+        let output = "Memory Device\n\tSize: 16 GB\n\tLocator: DIMM0\n\tSpeed: 3200 MT/s\n\tManufacturer: Fixture\n\tSerial Number: SERIAL-1\n\tPart Number: PART-1\n";
+        let devices = parse_dmidecode_memory(output);
+
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].slot, "DIMM0");
+        assert_eq!(devices[0].size, "16 GB");
+        assert_eq!(devices[0].speed, "3200 MT/s");
+    }
+}

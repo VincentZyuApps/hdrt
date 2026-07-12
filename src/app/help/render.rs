@@ -163,7 +163,10 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 "📋",
                 "--format <FORMAT>",
                 "CLI render format.",
-                &["[default: table]", "[possible values: table, json, markdown]"],
+                &[
+                    "[default: table]",
+                    "[possible values: table, json, markdown]",
+                ],
             );
             push_option(
                 lines,
@@ -211,7 +214,10 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                 "🌀",
                 "--spinner-style <SPINNER_STYLE>",
                 "Loading spinner style.",
-                &["[default: unicode]", "[possible values: unicode, ascii, dots]"],
+                &[
+                    "[default: unicode]",
+                    "[possible values: unicode, ascii, dots]",
+                ],
             );
             push_option(
                 lines,
@@ -297,7 +303,14 @@ fn push_global_options(lines: &mut Vec<String>, lang: Lang, emoji: bool) {
                     "[可选值: auto, native, shell]",
                 ],
             );
-            push_option(lines, emoji, "⏳", "--no-spinner", "禁用交互式加载动画。", &[]);
+            push_option(
+                lines,
+                emoji,
+                "⏳",
+                "--no-spinner",
+                "禁用交互式加载动画。",
+                &[],
+            );
             push_option(
                 lines,
                 emoji,

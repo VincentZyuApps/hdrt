@@ -38,7 +38,10 @@ fn push_collector_summary(
     lang: Lang,
     style: TextStyle,
 ) {
-    lines.push(format!("  {}", style.header(t(lang, "debug.collector_summary"))));
+    lines.push(format!(
+        "  {}",
+        style.header(t(lang, "debug.collector_summary"))
+    ));
     if report.debug.is_empty() {
         lines.push(format!("    {}", t(lang, "debug.no_records")));
         return;
@@ -94,7 +97,10 @@ fn push_hidden_fields(
         }
     }
 
-    lines.push(format!("  {}", style.header(t(lang, "debug.hidden_fields"))));
+    lines.push(format!(
+        "  {}",
+        style.header(t(lang, "debug.hidden_fields"))
+    ));
     if hidden.is_empty() {
         lines.push(format!("    {}", t(lang, "debug.none")));
     } else {
@@ -122,7 +128,11 @@ fn push_records(lines: &mut Vec<String>, report: &HardwareReport, lang: Lang, st
         }
 
         if record.fields.is_empty() {
-            lines.push(format!("    {} {}", style.key("fields:"), t(lang, "debug.none")));
+            lines.push(format!(
+                "    {} {}",
+                style.key("fields:"),
+                t(lang, "debug.none")
+            ));
         } else {
             lines.push(format!("    {}", style.key("fields:")));
             for (key, value) in &record.fields {

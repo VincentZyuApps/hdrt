@@ -4,10 +4,19 @@ use std::process::Command;
 use crate::hardware::unknown;
 
 pub(super) fn run_command(program: &str, args: &[&str]) -> Result<String, String> {
-    let output = Command::new(program)
-        .args(args)
-        .output()
-        .map_err(|err| err.to_string())?;
+    let output = match Command::new(program).args(args).output() {
+        Ok(output) => output,
+        Err(primary) if !program.contains('/') => {
+            let fallback = format!("/system/bin/{program}");
+            Command::new(&fallback)
+                .args(args)
+                .output()
+                .map_err(|fallback_err| {
+                    format!("could not run {program} ({primary}) or {fallback} ({fallback_err})")
+                })?
+        }
+        Err(err) => return Err(err.to_string()),
+    };
 
     if output.status.success() {
         String::from_utf8(output.stdout).map_err(|err| err.to_string())
@@ -58,5 +67,31 @@ pub(super) fn format_bytes(bytes: u64) -> String {
         format!("{bytes} {}", UNITS[unit])
     } else {
         format!("{value:.2} {}", UNITS[unit])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_standard_android_getprop_output() {
+        let props =
+            parse_getprop("[ro.product.manufacturer]: [Google]\n[ro.soc.model]: [Tensor G4]\n");
+
+        assert_eq!(
+            props.get("ro.product.manufacturer").map(String::as_str),
+            Some("Google")
+        );
+        assert_eq!(
+            props.get("ro.soc.model").map(String::as_str),
+            Some("Tensor G4")
+        );
+    }
+
+    #[test]
+    fn field_value_requires_an_exact_key() {
+        assert_eq!(field_value("Hardware : Tensor", "Hardware"), Some("Tensor"));
+        assert_eq!(field_value("HardwareX: Tensor", "Hardware"), None);
     }
 }

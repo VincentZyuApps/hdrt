@@ -7,6 +7,8 @@ pub(crate) mod privilege;
 mod registry;
 mod shell;
 mod storage;
+#[cfg(test)]
+mod tests;
 mod util;
 mod wmi;
 

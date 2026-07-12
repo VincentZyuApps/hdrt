@@ -99,3 +99,19 @@ pub(super) fn format_bytes(bytes: u64) -> String {
         format!("{value:.2} {}", UNITS[unit])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_lsblk_key_value_rows_with_spaces() {
+        let values = parse_key_values(
+            "NAME=\"sda\" MODEL=\"Fixture SSD 1TB\" SERIAL=\"ABC123\" TRAN=\"sata\"",
+        );
+
+        assert_eq!(values["NAME"], "sda");
+        assert_eq!(values["MODEL"], "Fixture SSD 1TB");
+        assert_eq!(values["SERIAL"], "ABC123");
+    }
+}

@@ -18,7 +18,7 @@ pub fn capability_report() -> CapabilityReport {
     }
     if cfg!(target_os = "android") {
         notes.push(
-            "Android/Termux uses /proc, df, and getprop; low-level board, serial, disk health, and firmware fields may be hidden."
+            "Android/Termux uses /proc, /sys/block, df, and getprop; physical model, serial, disk health, and firmware fields may still be hidden."
                 .to_string(),
         );
     }
@@ -77,12 +77,14 @@ fn capability_tools() -> Vec<ToolStatus> {
                 path: Some("/proc/cpuinfo + /proc/meminfo".to_string()),
                 purpose: "default Android backend for CPU and memory totals".to_string(),
             },
+            ToolStatus {
+                name: "sysfs".to_string(),
+                available: std::path::Path::new("/sys/block").is_dir(),
+                path: Some("/sys/block".to_string()),
+                purpose: "best-effort Android physical block device inventory".to_string(),
+            },
             command_tool("df", "Android/Termux logical storage inventory"),
             command_tool("getprop", "Android device, board, and OS properties"),
-            command_tool(
-                "lsblk",
-                "optional Termux block device inventory when available",
-            ),
         ];
     }
 
@@ -153,6 +155,8 @@ fn is_elevated_platform() -> bool {
 fn elevated_hint() -> &'static str {
     if cfg!(windows) {
         "Run hdrt from an Administrator terminal for more complete hardware fields."
+    } else if cfg!(target_os = "android") {
+        "Standard Termux cannot gain Android hardware access with sudo; rooted devices may expose more fields when hdrt is launched through su."
     } else {
         "Run sudo hdrt for more complete hardware fields."
     }

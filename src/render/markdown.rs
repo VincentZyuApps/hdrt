@@ -25,10 +25,7 @@ pub fn render_report(
     ) {
         output.push(render_physical_disks(report, lang, emoji));
     }
-    if matches!(
-        section,
-        Section::Disk | Section::LogicalDisk | Section::All
-    ) {
+    if matches!(section, Section::Disk | Section::LogicalDisk | Section::All) {
         output.push(render_logical_disks(report, lang, emoji));
     }
     if matches!(section, Section::Memory | Section::All) {

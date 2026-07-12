@@ -30,21 +30,72 @@ Artifact filenames include the same tag.
 
 Only these four workflow keywords are enabled for now.
 
-| Keyword in commit message | Build (8 platforms) | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
-|---------------------------|:---:|:---:|:---:|:---:|:---:|:---:|
-| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| `build release` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `build publish` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `publish from release` | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Keyword in commit message | Linux/Windows quality | Build (8 platforms) | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
+|---------------------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `build action` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `build release` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `build publish` | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `publish from release` | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
 
 Notes:
 
-- Pull requests always build, but never publish.
+- Pull requests always run Linux/Windows quality checks and build all eight targets, but never publish.
 - Each push mirrors the code repository to Gitee.
+- `build action`, `build release`, and `build publish` run formatting, Clippy, and tests before starting the eight-target build.
 - `build release` builds binaries, creates a GitHub Release, then syncs the Release files to Gitee.
 - `build publish` builds binaries, creates GitHub/Gitee Releases, then updates both GitHub and Gitee Scoop buckets.
 - `publish from release` skips building, reuses the existing GitHub Release assets for the current `Cargo.toml` version, syncs them to Gitee, then updates Scoop manifests.
 - AUR, npm, and crates.io jobs are reserved for later.
+
+## 🧰 Local Release Workflow
+
+`hdrt` is a Rust-only project. It maintains the root `Cargo.toml` and `Cargo.lock` files and does not use `yarn.lock`. After changing the package version or dependencies, let Cargo update the lockfile, then use `--locked` to ensure later commands cannot rewrite it.
+
+Rust may be installed only in Linux or WSL. Windows-specific code is checked by the GitHub Actions `windows-latest` quality job, so a local Windows Rust toolchain is not required.
+
+Install the local quality components once:
+
+```bash
+rustup component add rustfmt clippy
+```
+
+Run the complete pre-release workflow from the directory containing the `hdrt` repository:
+
+```bash
+cd hdrt
+
+cargo metadata --format-version 1 >/dev/null
+cargo check --locked
+
+cargo fmt --all
+cargo fmt --all -- --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-targets --all-features
+cargo build --locked --release
+
+git status
+git diff --check
+git diff HEAD --stat
+git diff HEAD -- Cargo.toml Cargo.lock
+
+git add -A
+git diff --cached --check
+git diff --cached --stat
+git diff --cached
+
+git commit -m "release: vX.Y.Z summary (build publish)"
+git push origin main
+```
+
+Command notes:
+
+- `cargo metadata` resolves the package and dependencies and synchronizes `Cargo.lock` after version or dependency changes.
+- `cargo check --locked` verifies that `Cargo.toml` and `Cargo.lock` are already consistent.
+- `cargo fmt --all` updates Rust files that do not match the formatter, and the following `--check` verifies the result.
+- Clippy checks suspicious code with warnings treated as errors, while the test command runs tests supported by the current operating system.
+- WSL runs shared and Linux tests; GitHub Actions supplies the Windows test coverage.
+- `git add -A` stages every change, so review the status and staged diff before committing.
+- Verify the commit keyword before pushing because `build release` and `build publish` start release workflows.
 
 ## 🧪 Usage Examples
 
@@ -75,6 +126,18 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
 | Android / Termux | x86_64 | `x86_64-linux-android` | `hdrt-android-x86_64-vX.Y.Z` |
 
+Android artifacts use the NDK API 24 toolchain, so the minimum supported version is Android 7.0 and only 64-bit ARM64 / x86_64 binaries are published.
+
+CI cross-compiles Android artifacts but does not execute them on a device. Before publishing, run this smoke check in Termux:
+
+```bash
+hdrt --version
+hdrt doctor
+hdrt --debug --no-color --no-bold
+hdrt --format json > "$TMPDIR/hdrt-android.json"
+hdrt tui --border plain
+```
+
 ## 🔁 Pipeline
 
 ```text
@@ -82,7 +145,12 @@ check
   ├─ parse commit message
   └─ extract version from Cargo.toml
 
+quality
+  ├─ Ubuntu: cargo fmt + cargo clippy + cargo test
+  └─ Windows: cargo clippy + cargo test
+
 build
+  ├─ wait for Linux/Windows quality checks
   ├─ build 8 release binaries
   ├─ build .deb and .rpm packages for Linux targets
   └─ upload artifacts

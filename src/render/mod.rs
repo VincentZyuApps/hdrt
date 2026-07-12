@@ -10,8 +10,11 @@ mod json;
 mod markdown;
 mod style;
 mod table;
+#[cfg(test)]
+mod tests;
 mod warnings;
 
+#[allow(clippy::too_many_arguments)]
 pub fn render_report(
     report: &HardwareReport,
     section: Section,

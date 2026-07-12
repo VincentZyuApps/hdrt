@@ -3,7 +3,12 @@ use ratatui::text::Span;
 
 pub(super) fn disk_marker(selected: bool) -> Span<'static> {
     if selected {
-        Span::styled("> ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        Span::styled(
+            "> ",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
     } else {
         Span::styled("  ", Style::default().fg(Color::DarkGray))
     }
@@ -33,7 +38,9 @@ pub(super) fn append_disk_sep(spans: &mut Vec<Span<'static>>) {
 }
 
 fn disk_key_style(selected: bool) -> Style {
-    let mut style = Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD);
+    let mut style = Style::default()
+        .fg(Color::Cyan)
+        .add_modifier(Modifier::BOLD);
     if selected {
         style = style.add_modifier(Modifier::UNDERLINED);
     }

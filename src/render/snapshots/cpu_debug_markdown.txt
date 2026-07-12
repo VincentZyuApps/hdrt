@@ -1,0 +1,24 @@
+## CPU
+
+- model: `Test CPU`
+- vendor: `Test Vendor`
+- physical_cores: `6`
+- logical_threads: `12`
+- frequency: `2500 MHz`
+
+## Debug Summary
+
+### Collector Summary
+- `fixture`: 1 records
+
+### Hidden Fields
+- none
+
+## Debug Records
+
+### 1. cpu0
+
+- source: `fixture`
+- note: deterministic fixture
+- fields:
+  - `cores`: `6`

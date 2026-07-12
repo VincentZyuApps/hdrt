@@ -93,6 +93,8 @@ pub fn t(key: &str) -> &'static str {
         "tui.swap_used" => "交换空间占用",
         "tui.disk_used" => "磁盘占用",
         "tui.disk_io" => "磁盘 I/O",
+        "tui.io_unavailable" => "不可用",
+        "tui.io_unavailable_message" => "当前挂载点无法获取磁盘 I/O。",
         "tui.disk.key.disk" => "磁盘",
         "tui.disk.key.model" => "型号",
         "tui.disk.key.device" => "设备",

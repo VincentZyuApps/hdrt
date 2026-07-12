@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::warning::HdrtWarning;
 use super::unknown;
+use super::warning::HdrtWarning;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MotherboardInfo {

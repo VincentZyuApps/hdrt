@@ -30,6 +30,7 @@
 - dnf 系 Linux 发行版，安装 `.rpm`
 - Android / Termux，安装 Android 二进制
 - x86_64 和 aarch64
+- Android 需要 API 24（Android 7.0）或更高版本，暂不提供 32 位 ARM 构建
 
 GitHub：
 
@@ -72,6 +73,7 @@ hdrt doctor
 ## ⌨️ 命令
 
 ```bash
+hdrt --version
 hdrt disk
 hdrt physical-disk
 hdrt logical-disk
@@ -92,6 +94,8 @@ hdrt tui -t 1000
 hdrt tui --chart-mode bar
 hdrt tui --border rounded
 ```
+
+`hdrt --version` / `hdrt -V` 会显示版本号、Git 提交哈希、提交时间、运行系统、架构和编译 target；本地源码包没有 Git 元数据时对应字段显示 `unknown`。
 
 别名：
 
@@ -127,7 +131,8 @@ hdrt bench
 - Windows `native` 使用 Rust WMI/CIM 和 native fallback 代码；`shell` 使用 PowerShell/CIM 脚本。
 - Linux `native` 使用 `/sys`、`/proc` 和 DMI 文件；`shell` 使用 `lsblk`、`smartctl`、`dmidecode` 等工具。
 - Linux 硬盘健康状态由 `auto` / `shell` 在可用时通过 `smartctl` 补齐。`native` 会暂时保持未知，后续再做原生 SMART/NVMe 探测。
-- Android / Termux 和 macOS 接受 `--backend` 参数，但后端拆分还没有 Windows/Linux 完整。
+- Android / Termux 接受 `--backend` 和 `--detail`，但当前始终使用同一组尽力采集器；选择非默认值时会给出提示。
+- macOS 接受 `--backend` 参数，但后端拆分还没有 Windows/Linux 完整。
 
 ## ✨ Emoji 模式
 
@@ -162,6 +167,8 @@ Spinner 样式：
 ## 🖥️ TUI
 
 `hdrt tui` 会打开实时 Ratatui 界面，把静态硬件清单和实时 CPU、内存、磁盘遥测放在一起展示。
+
+Linux / Android 会通过 `/proc/diskstats` 和 `/proc/self/mountinfo` 关联逻辑盘 I/O。Android FUSE 共享存储无法可靠映射到底层块设备时会显示“不可用”，不会显示成真实的 `0 B/s`。
 
 ```bash
 hdrt tui
@@ -232,7 +239,7 @@ CLI 渲染样式：
 - Linux 内存插槽序列号通常需要 `dmidecode`，很多场景还需要 `sudo`。
 - Linux `--backend native` 不启动 shell 命令，所以硬盘健康状态等字段可能保持未知。
 - Linux `--backend auto` 和 `--backend shell` 可以使用 `lsblk`、`smartctl`、`dmidecode` 等工具。
-- Android / Termux 使用 `/proc`、`df` 和 `getprop`；Android 可能隐藏底层磁盘、主板、序列号、固件和健康状态字段。
+- Android / Termux 使用 `/proc`、`/sys/block`、`df` 和 `getprop`；会过滤 eMMC boot/RPMB 特殊区域，并提示 UFS logical unit 可能属于同一设备，但 Android 仍可能隐藏型号、序列号、固件和健康状态字段。
 - Windows 主板、BIOS、磁盘序列号等字段可能需要管理员终端。
 
 推荐检查：

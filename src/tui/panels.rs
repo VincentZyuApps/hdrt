@@ -1,4 +1,4 @@
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
@@ -13,10 +13,8 @@ use super::selection::{
     disk_rate_style, disk_value_style,
 };
 use super::state::TuiState;
-use super::utils::{
-    collect_warnings, disk_label, health_color, label, push_kv, warning_percent,
-};
-use super::widgets::{draw_empty, draw_gauge_panel};
+use super::utils::{collect_warnings, disk_label, health_color, label, push_kv};
+use super::widgets::draw_empty;
 
 const DISK_LIST_ITEM_HEIGHT: u16 = 3;
 
@@ -59,100 +57,20 @@ pub(super) fn draw_motherboard(frame: &mut Frame, area: Rect, state: &TuiState) 
         lines.push(Line::from(t(state.lang, "no_data")));
     }
 
-    let block = state.style.block().title(label(
-        state.lang,
-        "section.motherboard",
-        state.emoji,
-    ));
-    frame.render_widget(Paragraph::new(lines).block(block).wrap(Wrap { trim: true }), area);
-}
-
-pub(super) fn draw_health(frame: &mut Frame, area: Rect, state: &TuiState) {
-    let warnings = collect_warnings(&state.report);
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(1)])
-        .split(area);
-
-    let gauges = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-        ])
-        .split(chunks[0]);
-    draw_gauge_panel(
-        frame,
-        gauges[0],
-        t(state.lang, "tui.cpu_total"),
-        state.latest.cpu_total_percent,
-        Color::Cyan,
-        state.style,
-    );
-    draw_gauge_panel(
-        frame,
-        gauges[1],
-        t(state.lang, "tui.memory_used"),
-        state.latest.memory.used_percent,
-        Color::Magenta,
-        state.style,
-    );
-    draw_gauge_panel(
-        frame,
-        gauges[2],
-        &format!("{} {}", t(state.lang, "warnings"), warnings.len()),
-        warning_percent(warnings.len()),
-        Color::Red,
-        state.style,
-    );
-
-    let mut lines = Vec::new();
-    lines.push(Line::from(Span::styled(
-        format!("{}: {}", t(state.lang, "warnings"), warnings.len()),
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )));
-    lines.push(Line::from(""));
-
-    if state.report.physical_disks.is_empty() {
-        lines.push(Line::from(t(state.lang, "no_data")));
-    } else {
-        for disk in &state.report.physical_disks {
-            lines.push(Line::from(vec![
-                Span::styled(
-                    display_value(state.lang, &disk.device),
-                    Style::default().fg(Color::Cyan),
-                ),
-                Span::raw("  "),
-                Span::styled(
-                    display_value(state.lang, &disk.health),
-                    Style::default().fg(health_color(&disk.health)),
-                ),
-                Span::raw("  "),
-                Span::raw(display_value(state.lang, &disk.model)),
-            ]));
-        }
-    }
-
+    let block = state
+        .style
+        .block()
+        .title(label(state.lang, "section.motherboard", state.emoji));
     frame.render_widget(
-        Paragraph::new(lines)
-            .block(state.style.block().title(label(state.lang, "section.health", state.emoji)))
-            .wrap(Wrap { trim: true }),
-        chunks[1],
+        Paragraph::new(lines).block(block).wrap(Wrap { trim: true }),
+        area,
     );
 }
 
 pub(super) fn draw_warnings(frame: &mut Frame, area: Rect, state: &TuiState) {
     let warnings = collect_warnings(&state.report);
     if warnings.is_empty() {
-        draw_empty(
-            frame,
-            area,
-            t(state.lang, "tui.no_warnings"),
-            state.style,
-        );
+        draw_empty(frame, area, t(state.lang, "tui.no_warnings"), state.style);
         return;
     }
 
@@ -262,7 +180,11 @@ pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &mut TuiState
             append_disk_kv(
                 &mut io,
                 t(state.lang, "tui.disk.key.read"),
-                telemetry::format_rate(disk.read_bytes_per_sec),
+                if disk.io_available {
+                    telemetry::format_rate(disk.read_bytes_per_sec)
+                } else {
+                    t(state.lang, "tui.io_unavailable").to_string()
+                },
                 selected,
                 disk_rate_style(selected, Color::Green),
             );
@@ -270,17 +192,17 @@ pub(super) fn draw_disk_list(frame: &mut Frame, area: Rect, state: &mut TuiState
             append_disk_kv(
                 &mut io,
                 t(state.lang, "tui.disk.key.write"),
-                telemetry::format_rate(disk.write_bytes_per_sec),
+                if disk.io_available {
+                    telemetry::format_rate(disk.write_bytes_per_sec)
+                } else {
+                    t(state.lang, "tui.io_unavailable").to_string()
+                },
                 selected,
                 disk_rate_style(selected, Color::Yellow),
             );
 
-            ListItem::new(vec![
-                Line::from(heading),
-                Line::from(usage),
-                Line::from(io),
-            ])
-            .style(disk_item_style(selected))
+            ListItem::new(vec![Line::from(heading), Line::from(usage), Line::from(io)])
+                .style(disk_item_style(selected))
         })
         .collect::<Vec<_>>();
     frame.render_widget(
@@ -398,12 +320,7 @@ fn disk_list_visible_count(area: Rect) -> usize {
     (area.height.saturating_sub(2) / DISK_LIST_ITEM_HEIGHT) as usize
 }
 
-fn fit_disk_scroll(
-    offset: &mut usize,
-    selected: usize,
-    len: usize,
-    visible_count: usize,
-) -> usize {
+fn fit_disk_scroll(offset: &mut usize, selected: usize, len: usize, visible_count: usize) -> usize {
     if len == 0 || visible_count == 0 {
         *offset = 0;
         return 0;
@@ -451,7 +368,12 @@ pub(super) fn draw_memory_inventory(frame: &mut Frame, area: Rect, state: &TuiSt
     }
     frame.render_widget(
         Paragraph::new(lines)
-            .block(state.style.block().title(label(state.lang, "section.memory", state.emoji)))
+            .block(
+                state
+                    .style
+                    .block()
+                    .title(label(state.lang, "section.memory", state.emoji)),
+            )
             .wrap(Wrap { trim: true }),
         area,
     );

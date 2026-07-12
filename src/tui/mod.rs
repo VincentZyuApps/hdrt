@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -17,6 +19,8 @@ mod screens;
 mod selection;
 mod state;
 mod style;
+#[cfg(test)]
+mod tests;
 mod utils;
 mod widgets;
 

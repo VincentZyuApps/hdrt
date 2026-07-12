@@ -50,7 +50,12 @@ impl TextStyle {
     }
 }
 
-pub(super) fn style_table_header(table: String, table_style: TableStyle, style: TextStyle) -> String {
+pub(super) fn style_table_header(
+    table: String,
+    headers: &[String],
+    table_style: TableStyle,
+    style: TextStyle,
+) -> String {
     let header_index = match table_style {
         TableStyle::Psql | TableStyle::Blank => 0,
         _ => 1,
@@ -61,11 +66,57 @@ pub(super) fn style_table_header(table: String, table_style: TableStyle, style: 
         .enumerate()
         .map(|(index, line)| {
             if index == header_index {
-                style.header(line)
+                style_header_labels(line, headers, style)
             } else {
                 line.to_string()
             }
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn style_header_labels(line: &str, headers: &[String], style: TextStyle) -> String {
+    let mut output = String::with_capacity(line.len());
+    let mut cursor = 0;
+
+    for header in headers {
+        let Some(offset) = line[cursor..].find(header) else {
+            continue;
+        };
+        let start = cursor + offset;
+        output.push_str(&line[cursor..start]);
+        output.push_str(&style.header(header));
+        cursor = start + header.len();
+    }
+
+    output.push_str(&line[cursor..]);
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn styles_header_labels_without_styling_borders() {
+        let table = [
+            "╭───────┬────────╮",
+            "│ model │ vendor │",
+            "├───────┼────────┤",
+            "│ disk  │ maker  │",
+            "╰───────┴────────╯",
+        ]
+        .join("\n");
+        let headers = vec!["model".to_string(), "vendor".to_string()];
+
+        let rendered = style_table_header(
+            table,
+            &headers,
+            TableStyle::Rounded,
+            TextStyle::new(true, true),
+        );
+
+        assert!(rendered.contains("│ \x1b[1;36mmodel\x1b[0m │ \x1b[1;36mvendor\x1b[0m │"));
+        assert!(!rendered.contains("\x1b[1;36m│"));
+    }
 }

@@ -102,9 +102,7 @@ fn collect_storage_disks(
                     DebugRecord::new("MSFT_PhysicalDisk", "native-wmi")
                         .field("query", base_query)
                         .field("rows", rows.len().to_string())
-                        .note(format!(
-                            "Model query failed; used base query: {full_err}"
-                        )),
+                        .note(format!("Model query failed; used base query: {full_err}")),
                 );
             }
             Ok(rows)
@@ -232,12 +230,7 @@ fn disk_drive_rows_to_disks(
             let disk = disk_from_disk_drive_row(disk, descriptor);
 
             if debug_enabled {
-                debug.push(debug_final_disk(
-                    &disk,
-                    index,
-                    true,
-                    descriptor.is_some(),
-                ));
+                debug.push(debug_final_disk(&disk, index, true, descriptor.is_some()));
             }
 
             disk
@@ -369,9 +362,7 @@ fn debug_final_disk(
     DebugRecord::new(disk.device.clone(), "final-disk-merge")
         .field(
             "physical_index",
-            index
-                .map(|index| index.to_string())
-                .unwrap_or_else(unknown),
+            index.map(|index| index.to_string()).unwrap_or_else(unknown),
         )
         .field("model", disk.model.clone())
         .field("serial", disk.serial.clone())
@@ -402,9 +393,10 @@ fn find_disk_drive_for_storage<'a>(
 
     let serial = known(storage.serial_number.clone());
     if serial != "Unknown" {
-        if let Some(disk) = disks.iter().find(|disk| {
-            known(disk.serial_number.clone()).eq_ignore_ascii_case(serial.trim())
-        }) {
+        if let Some(disk) = disks
+            .iter()
+            .find(|disk| known(disk.serial_number.clone()).eq_ignore_ascii_case(serial.trim()))
+        {
             return Some(disk);
         }
     }
@@ -414,9 +406,9 @@ fn find_disk_drive_for_storage<'a>(
         known(storage.model.clone()),
     ]);
     if model != "Unknown" {
-        return disks.iter().find(|disk| {
-            known(disk.model.clone()).eq_ignore_ascii_case(model.trim())
-        });
+        return disks
+            .iter()
+            .find(|disk| known(disk.model.clone()).eq_ignore_ascii_case(model.trim()));
     }
 
     None

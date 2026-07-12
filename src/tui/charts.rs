@@ -41,14 +41,10 @@ pub(super) fn draw_chart(
                 .bounds([0.0, x_max])
                 .labels(time_axis_labels(points.len(), interval, area.width)),
         )
-        .y_axis(
-            Axis::default()
-                .bounds([0.0, max_value])
-                .labels(vec![
-                    Span::raw("0"),
-                    Span::raw(format_metric(max_value, kind)),
-                ]),
-        );
+        .y_axis(Axis::default().bounds([0.0, max_value]).labels(vec![
+            Span::raw("0"),
+            Span::raw(format_metric(max_value, kind)),
+        ]));
     frame.render_widget(chart, area);
 }
 
@@ -93,14 +89,10 @@ pub(super) fn draw_dual_chart(
                     area.width,
                 )),
         )
-        .y_axis(
-            Axis::default()
-                .bounds([0.0, max_value])
-                .labels(vec![
-                    Span::raw("0"),
-                    Span::raw(telemetry::format_rate(max_value)),
-                ]),
-        );
+        .y_axis(Axis::default().bounds([0.0, max_value]).labels(vec![
+            Span::raw("0"),
+            Span::raw(telemetry::format_rate(max_value)),
+        ]));
     frame.render_widget(chart, area);
 }
 
@@ -187,10 +179,7 @@ fn sample_age_label(sample_count: usize, sample_index: usize, interval: Duration
 }
 
 fn sample_age(sample_count: usize, sample_index: usize, interval: Duration) -> f64 {
-    sample_count
-        .saturating_sub(1)
-        .saturating_sub(sample_index) as f64
-        * interval.as_secs_f64()
+    sample_count.saturating_sub(1).saturating_sub(sample_index) as f64 * interval.as_secs_f64()
 }
 
 fn format_age(seconds: f64) -> String {

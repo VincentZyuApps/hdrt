@@ -52,24 +52,20 @@ pub(super) fn draw_comparison_widget(
         ChartMode::Gauge => {
             draw_comparison_gauges(frame, area, title, items, max_value, color, style)
         }
-        ChartMode::Bar => {
-            draw_comparison_bars(frame, area, title, items, max_value, color, style)
-        }
+        ChartMode::Bar => draw_comparison_bars(frame, area, title, items, max_value, color, style),
         ChartMode::Sparkline => {
             draw_comparison_sparkline(frame, area, title, items, max_value, color, style)
         }
-        ChartMode::Line => {
-            draw_static_chart(
-                frame,
-                area,
-                title,
-                items,
-                max_value,
-                color,
-                GraphType::Line,
-                style,
-            )
-        }
+        ChartMode::Line => draw_static_chart(
+            frame,
+            area,
+            title,
+            items,
+            max_value,
+            color,
+            GraphType::Line,
+            style,
+        ),
         ChartMode::Scatter => draw_static_chart(
             frame,
             area,
@@ -112,33 +108,21 @@ pub(super) fn draw_history_widget(
             interval,
             style,
         ),
-        ChartMode::Scatter => {
-            draw_chart(
-                frame,
-                area,
-                title,
-                history,
-                max_value,
-                color,
-                GraphType::Scatter,
-                kind,
-                interval,
-                style,
-            )
-        }
-        ChartMode::Bar => {
-            draw_history_bars(
-                frame,
-                area,
-                title,
-                history,
-                max_value,
-                color,
-                kind,
-                interval,
-                style,
-            )
-        }
+        ChartMode::Scatter => draw_chart(
+            frame,
+            area,
+            title,
+            history,
+            max_value,
+            color,
+            GraphType::Scatter,
+            kind,
+            interval,
+            style,
+        ),
+        ChartMode::Bar => draw_history_bars(
+            frame, area, title, history, max_value, color, kind, interval, style,
+        ),
         ChartMode::Sparkline => {
             draw_sparkline(frame, area, title, history, max_value, color, style)
         }
@@ -292,7 +276,10 @@ fn draw_static_chart(
 fn static_axis_labels(items: &[ComparisonItem]) -> Vec<Span<'static>> {
     match (items.first(), items.last()) {
         (Some(first), Some(last)) if items.len() > 1 => {
-            vec![Span::raw(short_label(&first.label)), Span::raw(short_label(&last.label))]
+            vec![
+                Span::raw(short_label(&first.label)),
+                Span::raw(short_label(&last.label)),
+            ]
         }
         (Some(item), _) => vec![Span::raw(short_label(&item.label))],
         _ => vec![Span::raw("")],
@@ -444,11 +431,7 @@ pub(super) fn draw_gauge_panel(
     let percent = percent.clamp(0.0, 100.0);
     let gauge = Gauge::default()
         .block(style.block().title(title.to_string()))
-        .gauge_style(
-            Style::default()
-                .fg(color)
-                .add_modifier(Modifier::BOLD),
-        )
+        .gauge_style(Style::default().fg(color).add_modifier(Modifier::BOLD))
         .percent(percent.round() as u16)
         .label(telemetry::format_percent(percent));
     frame.render_widget(gauge, area);

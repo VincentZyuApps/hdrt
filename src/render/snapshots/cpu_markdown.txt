@@ -1,0 +1,7 @@
+## CPU
+
+- model: `Test CPU`
+- vendor: `Test Vendor`
+- physical_cores: `6`
+- logical_threads: `12`
+- frequency: `2500 MHz`

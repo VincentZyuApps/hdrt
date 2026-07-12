@@ -54,4 +54,4 @@ scoop install hdrt@__PLAIN_VER__
 
 - `hdrt` uses `--backend auto` by default. Use `--backend native` to avoid external commands, or `--backend shell` to force shell-based collectors.
 - Linux native mode uses `/sys` and `/proc`; auto/shell modes can use `lsblk`, `dmidecode`, and optional `smartctl` for richer fields.
-- Android / Termux uses `/proc`, `df`, and `getprop`; low-level board, serial, firmware, and disk health fields may be hidden by Android.
+- Android / Termux requires Android 7.0 / API 24 or newer and uses `/proc`, `/sys/block`, `df`, and `getprop`; physical block devices are best-effort, and model, serial, firmware, and disk health fields may still be hidden by Android.

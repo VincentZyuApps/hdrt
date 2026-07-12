@@ -75,22 +75,31 @@ pub(super) fn draw_overview(frame: &mut Frame, area: Rect, state: &TuiState) {
         state.interval,
         state.style,
     );
-    draw_io_widget(
-        frame,
-        body[2],
-        t(state.lang, "tui.disk_io"),
-        &state.disk_read_history,
-        &state.disk_write_history,
-        Color::Green,
-        Color::Yellow,
-        state.chart_mode,
-        state.interval,
-        state.style,
-    );
+    if state.disk_io_available() {
+        draw_io_widget(
+            frame,
+            body[2],
+            t(state.lang, "tui.disk_io"),
+            &state.disk_read_history,
+            &state.disk_write_history,
+            Color::Green,
+            Color::Yellow,
+            state.chart_mode,
+            state.interval,
+            state.style,
+        );
+    } else {
+        draw_empty(
+            frame,
+            body[2],
+            t(state.lang, "tui.io_unavailable_message"),
+            state.style,
+        );
+    }
 }
 
 pub(super) fn draw_cpu(frame: &mut Frame, area: Rect, state: &TuiState) {
-    let core_rows = ((state.latest.cpu_cores_percent.len() + 1) / 2) as u16;
+    let core_rows = state.latest.cpu_cores_percent.len().div_ceil(2) as u16;
     let core_height = core_rows.saturating_add(2).max(3);
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -288,6 +297,15 @@ fn draw_selected_disk_io(frame: &mut Frame, area: Rect, state: &TuiState) {
         draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
     };
+    if !disk.io_available {
+        draw_empty(
+            frame,
+            area,
+            t(state.lang, "tui.io_unavailable_message"),
+            state.style,
+        );
+        return;
+    }
     let Some(history) = state.selected_disk_history() else {
         draw_empty(frame, area, t(state.lang, "no_data"), state.style);
         return;
@@ -338,21 +356,23 @@ fn draw_summary_gauges(frame: &mut Frame, area: Rect, state: &TuiState) {
         Color::Magenta,
         state.style,
     );
+    let io_rate = if state.disk_io_available() {
+        telemetry::format_rate(
+            state
+                .latest
+                .disks
+                .iter()
+                .filter(|disk| disk.io_available)
+                .map(|disk| disk.read_bytes_per_sec + disk.write_bytes_per_sec)
+                .sum::<f64>(),
+        )
+    } else {
+        t(state.lang, "tui.io_unavailable").to_string()
+    };
     draw_gauge_panel(
         frame,
         chunks[2],
-        &format!(
-            "{} {}",
-            t(state.lang, "tui.disk_io"),
-            telemetry::format_rate(
-                state
-                    .latest
-                    .disks
-                    .iter()
-                    .map(|disk| disk.read_bytes_per_sec + disk.write_bytes_per_sec)
-                    .sum::<f64>(),
-            )
-        ),
+        &format!("{} {}", t(state.lang, "tui.disk_io"), io_rate),
         average_disk_used_percent(&state.latest.disks),
         Color::Green,
         state.style,

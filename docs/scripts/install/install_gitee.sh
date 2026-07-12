@@ -29,6 +29,23 @@ case "$ARCH" in
 esac
 
 if $IS_TERMUX; then
+  ANDROID_API=""
+  if command -v getprop >/dev/null 2>&1; then
+    ANDROID_API=$(getprop ro.build.version.sdk 2>/dev/null || true)
+  elif [ -x /system/bin/getprop ]; then
+    ANDROID_API=$(/system/bin/getprop ro.build.version.sdk 2>/dev/null || true)
+  fi
+
+  if [ -n "$ANDROID_API" ]; then
+    echo "🤖 检测到 Android API：$ANDROID_API"
+    if [ "$ANDROID_API" -lt 24 ] 2>/dev/null; then
+      echo "❌ 需要 Android API 24（Android 7.0）或更高版本。"
+      exit 1
+    fi
+  fi
+fi
+
+if $IS_TERMUX; then
   PKG_MGR="termux"
 elif command -v apt-get >/dev/null 2>&1; then
   PKG_MGR="apt"

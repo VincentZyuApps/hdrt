@@ -93,7 +93,7 @@ fn enrich_with_smartctl(disks: &mut [DiskInfo], detail: DetailLevel) {
     for disk in disks {
         let path = format!("/dev/{}", disk.device);
         let detail_arg = if require_smart {
-            detail.as_script_arg()
+            detail.into_script_arg()
         } else {
             "basic"
         };
@@ -118,11 +118,11 @@ fn run_smartctl(detail: &str, path: &str) -> Result<String, String> {
 }
 
 trait DetailLevelScriptArg {
-    fn as_script_arg(self) -> &'static str;
+    fn into_script_arg(self) -> &'static str;
 }
 
 impl DetailLevelScriptArg for DetailLevel {
-    fn as_script_arg(self) -> &'static str {
+    fn into_script_arg(self) -> &'static str {
         match self {
             DetailLevel::Basic => "basic",
             DetailLevel::Smart => "smart",
@@ -173,5 +173,31 @@ fn normalize_health(value: &str) -> String {
         "Warning".to_string()
     } else {
         non_empty_or_unknown(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_common_smart_health_values() {
+        assert_eq!(normalize_health("PASSED"), "Healthy");
+        assert_eq!(normalize_health("FAILED!"), "Unhealthy");
+        assert_eq!(normalize_health("Warning"), "Warning");
+    }
+
+    #[test]
+    fn smartctl_fills_missing_disk_details() {
+        let mut disk = DiskInfo::default();
+        apply_smartctl_output(
+            &mut disk,
+            "Device Model: Fixture SSD\nSerial Number: SERIAL-1\nFirmware Version: FW-1\nSMART overall-health self-assessment test result: PASSED\n",
+        );
+
+        assert_eq!(disk.model, "Fixture SSD");
+        assert_eq!(disk.serial, "SERIAL-1");
+        assert_eq!(disk.firmware, "FW-1");
+        assert_eq!(disk.health, "Healthy");
     }
 }

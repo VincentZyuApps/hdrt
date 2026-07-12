@@ -2,8 +2,8 @@ use wmi::WMIConnection;
 
 use crate::hardware::{CpuInfo, HdrtWarning, MemoryDevice, MotherboardInfo};
 
-use super::rows::{Win32BaseBoard, Win32Bios, Win32PhysicalMemory, Win32Processor};
 use super::super::util::{first_known, format_bytes};
+use super::rows::{Win32BaseBoard, Win32Bios, Win32PhysicalMemory, Win32Processor};
 use super::{known, raw_query};
 
 pub(super) fn collect_memory(
@@ -46,7 +46,10 @@ pub(super) fn collect_memory(
     }
 }
 
-pub(super) fn collect_cpu(conn: &WMIConnection, warnings: &mut Vec<HdrtWarning>) -> Option<CpuInfo> {
+pub(super) fn collect_cpu(
+    conn: &WMIConnection,
+    warnings: &mut Vec<HdrtWarning>,
+) -> Option<CpuInfo> {
     match raw_query::<Win32Processor>(
         conn,
         "SELECT Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed FROM Win32_Processor",

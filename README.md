@@ -30,6 +30,7 @@ The install script supports:
 - dnf-based Linux distributions through `.rpm`
 - Android / Termux through the Android binary
 - x86_64 and aarch64
+- Android API 24 (Android 7.0) or newer; 32-bit ARM builds are not provided
 
 GitHub:
 
@@ -72,6 +73,7 @@ hdrt doctor
 ## ⌨️ Commands
 
 ```bash
+hdrt --version
 hdrt disk
 hdrt physical-disk
 hdrt logical-disk
@@ -92,6 +94,8 @@ hdrt tui -t 1000
 hdrt tui --chart-mode bar
 hdrt tui --border rounded
 ```
+
+`hdrt --version` / `hdrt -V` prints the package version, Git commit hash and time, runtime system and architecture, and the Cargo build target. Git fields fall back to `unknown` when source builds do not include repository metadata.
 
 Aliases:
 
@@ -127,7 +131,8 @@ Platform notes:
 - Windows `native` uses Rust WMI/CIM and native fallback code; `shell` uses the PowerShell/CIM script.
 - Linux `native` uses `/sys`, `/proc`, and DMI files; `shell` uses tools such as `lsblk`, `smartctl`, and `dmidecode`.
 - Linux disk health is filled by `auto` / `shell` through `smartctl` when available. `native` keeps health unknown until native SMART/NVMe probing is implemented.
-- Android / Termux and macOS accept `--backend`, but their backend split is still narrower than Windows/Linux.
+- Android / Termux accepts `--backend` and `--detail`, but currently uses the same best-effort collectors and warns when a non-default value is selected.
+- macOS accepts `--backend`, but its backend split is still narrower than Windows/Linux.
 
 ## ✨ Emoji Mode
 
@@ -162,6 +167,8 @@ Spinner styles:
 ## 🖥️ TUI
 
 `hdrt tui` opens the live Ratatui interface. It combines the static hardware inventory with real-time CPU, memory, and disk telemetry.
+
+Linux / Android maps logical disk I/O through `/proc/diskstats` and `/proc/self/mountinfo`. Android FUSE shared storage displays `N/A` when it cannot be mapped reliably to an underlying block device instead of reporting a misleading `0 B/s`.
 
 ```bash
 hdrt tui
@@ -232,7 +239,7 @@ Some fields need elevated privileges or external tools:
 - Linux memory slot serial numbers usually need `dmidecode`, often with `sudo`.
 - Linux `--backend native` avoids shell commands, so some fields such as disk health may stay unknown.
 - Linux `--backend auto` and `--backend shell` can use tools such as `lsblk`, `smartctl`, and `dmidecode`.
-- Android / Termux uses `/proc`, `df`, and `getprop`; Android may hide low-level disk, board, serial, firmware, and health fields.
+- Android / Termux uses `/proc`, `/sys/block`, `df`, and `getprop`; eMMC boot/RPMB regions are filtered and multiple UFS logical units are identified as potentially belonging to one device, while Android may still hide model, serial, firmware, and health fields.
 - Windows board, BIOS, and disk serial fields may need an Administrator terminal.
 
 Recommended checks:

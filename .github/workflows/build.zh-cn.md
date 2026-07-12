@@ -30,21 +30,72 @@ v0.1.0
 
 当前只启用下面四种工作流关键词。
 
-| Commit 信息中的关键词 | 构建（8 平台） | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
-|----------------------|:---:|:---:|:---:|:---:|:---:|:---:|
-| `build action` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| `build release` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `build publish` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `publish from release` | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Commit 信息中的关键词 | Linux/Windows 质量检查 | 构建（8 平台） | GitHub Release | Gitee Release | GitHub/Gitee Scoop | AUR / npm | crates.io |
+|----------------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `build action` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `build release` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `build publish` | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `publish from release` | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
 
 说明：
 
-- Pull Request 始终会构建，但不会发布。
+- Pull Request 始终会执行 Linux/Windows 质量检查并构建八个平台，但不会发布。
 - 每次 push 都会同步代码仓库到 Gitee。
+- `build action`、`build release` 和 `build publish` 都会先执行格式检查、Clippy 和测试，成功后才开始八平台构建。
 - `build release` 会构建二进制、创建 GitHub Release，然后同步 Release 文件到 Gitee。
 - `build publish` 会构建二进制、创建 GitHub/Gitee Release，然后同时更新 GitHub 和 Gitee Scoop bucket。
 - `publish from release` 不重新构建，会复用当前 `Cargo.toml` 版本对应的已有 GitHub Release 产物，先同步到 Gitee，再更新 Scoop manifest。
 - AUR、npm 和 crates.io 任务暂时预留，后续再接。
+
+## 🧰 本地发布标准流程
+
+`hdrt` 是纯 Rust 项目，只需要维护根目录的 `Cargo.toml` 和 `Cargo.lock`，不涉及 `yarn.lock`。修改版本号或依赖后，先让 Cargo 更新锁文件，再用 `--locked` 验证后续命令不会继续改写它。
+
+本机可以只在 Linux 或 WSL 中安装 Rust。Windows 专属代码由 GitHub Actions 的 `windows-latest` 质量任务检查，本机不需要额外安装 Windows Rust 工具链。
+
+首次准备本地质量检查工具：
+
+```bash
+rustup component add rustfmt clippy
+```
+
+从包含 `hdrt` 仓库的目录执行完整发布前流程：
+
+```bash
+cd hdrt # 📂 进入 hdrt 仓库根目录
+
+cargo metadata --format-version 1 >/dev/null # 🧩 解析依赖并同步 Cargo.lock
+cargo check --locked # ✅ 验证 Cargo.toml 与 Cargo.lock 一致
+
+cargo fmt --all # 🧹 自动格式化全部 Rust 代码
+cargo fmt --all -- --check # 🔍 确认代码格式没有差异
+cargo clippy --locked --all-targets --all-features -- -D warnings # 📎 静态检查，任何 warning 都视为失败
+cargo test --locked --all-targets --all-features # 🧪 运行当前系统支持的全部测试
+cargo build --locked --release # 🏗️ 构建当前系统的 release 二进制
+
+git status # 👀 查看未暂存、已暂存和未跟踪文件
+git diff --check # 🧼 检查未暂存改动中的空白错误
+git diff HEAD --stat # 📊 查看相对 HEAD 的改动摘要
+git diff HEAD -- Cargo.toml Cargo.lock # 🔐 审核版本号和锁文件变化
+
+git add -A # 📦 暂存全部新增、修改和删除内容
+git diff --cached --check # 🧼 检查已暂存内容中的空白错误
+git diff --cached --stat # 📊 查看即将提交的改动摘要
+git diff --cached # 🔎 审阅即将提交的完整差异
+
+git commit -m "release: vX.Y.Z 更新说明 (build publish)" # 📝 创建本地发布提交
+git push origin main # 🚀 推送 main 并触发 GitHub Actions
+```
+
+命令说明：
+
+- `cargo metadata` 解析包与依赖，在版本号或依赖变化时同步 `Cargo.lock`。
+- `cargo check --locked` 验证 `Cargo.toml` 与 `Cargo.lock` 已经一致。
+- `cargo fmt --all` 会修改不符合格式规范的 Rust 文件，后面的 `--check` 负责再次确认。
+- Clippy 检查可疑写法并将 warning 当成错误，测试命令负责运行当前系统支持的测试。
+- WSL 只运行公共代码和 Linux 测试，Windows 测试会在 GitHub Actions 中补齐。
+- `git add -A` 会暂存全部修改，执行前后都应检查状态和 staged diff。
+- push 前确认 commit message 中的关键词正确，因为 `build release` 和 `build publish` 会触发正式发布流程。
 
 ## 🧪 用法示例
 
@@ -75,6 +126,18 @@ git commit --allow-empty -m "ci: update scoop manifest (publish from release)"
 | Android / Termux | ARM64 | `aarch64-linux-android` | `hdrt-android-aarch64-vX.Y.Z` |
 | Android / Termux | x86_64 | `x86_64-linux-android` | `hdrt-android-x86_64-vX.Y.Z` |
 
+Android 产物使用 NDK API 24 工具链，因此最低支持 Android 7.0，并且当前只发布 64 位 ARM64 / x86_64 二进制。
+
+CI 只负责交叉编译 Android 产物，不会在真机上执行。发布前建议在 Termux 运行以下冒烟检查：
+
+```bash
+hdrt --version
+hdrt doctor
+hdrt --debug --no-color --no-bold
+hdrt --format json > "$TMPDIR/hdrt-android.json"
+hdrt tui --border plain
+```
+
 ## 🔁 流水线
 
 ```text
@@ -82,7 +145,12 @@ check
   ├─ 解析 commit message
   └─ 从 Cargo.toml 提取版本
 
+quality
+  ├─ Ubuntu：cargo fmt + cargo clippy + cargo test
+  └─ Windows：cargo clippy + cargo test
+
 build
+  ├─ 等待 Linux/Windows 质量检查通过
   ├─ 构建 8 个 release 二进制
   ├─ 为 Linux target 构建 .deb 和 .rpm 包
   └─ 上传构建产物

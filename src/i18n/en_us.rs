@@ -93,6 +93,8 @@ pub fn t(key: &str) -> &'static str {
         "tui.swap_used" => "swap used",
         "tui.disk_used" => "disk used",
         "tui.disk_io" => "disk I/O",
+        "tui.io_unavailable" => "N/A",
+        "tui.io_unavailable_message" => "Disk I/O is unavailable for this mount.",
         "tui.disk.key.disk" => "disk",
         "tui.disk.key.model" => "model",
         "tui.disk.key.device" => "dev",

@@ -82,7 +82,7 @@ impl TuiState {
     }
 
     pub(super) fn sample(&mut self) {
-        self.latest = self.sampler.sample();
+        self.latest = self.sampler.sample(&self.report.logical_disks);
         if self.latest.disks.is_empty() {
             self.selected_disk = 0;
             self.logical_disk_scroll = 0;
@@ -101,20 +101,27 @@ impl TuiState {
         push_history(&mut self.cpu_history, self.latest.cpu_total_percent);
         push_history(&mut self.memory_history, self.latest.memory.used_percent);
 
-        let read_total = self
-            .latest
-            .disks
-            .iter()
-            .map(|disk| disk.read_bytes_per_sec)
-            .sum::<f64>();
-        let write_total = self
-            .latest
-            .disks
-            .iter()
-            .map(|disk| disk.write_bytes_per_sec)
-            .sum::<f64>();
-        push_history(&mut self.disk_read_history, read_total);
-        push_history(&mut self.disk_write_history, write_total);
+        if self.disk_io_available() {
+            let read_total = self
+                .latest
+                .disks
+                .iter()
+                .filter(|disk| disk.io_available)
+                .map(|disk| disk.read_bytes_per_sec)
+                .sum::<f64>();
+            let write_total = self
+                .latest
+                .disks
+                .iter()
+                .filter(|disk| disk.io_available)
+                .map(|disk| disk.write_bytes_per_sec)
+                .sum::<f64>();
+            push_history(&mut self.disk_read_history, read_total);
+            push_history(&mut self.disk_write_history, write_total);
+        } else {
+            self.disk_read_history.clear();
+            self.disk_write_history.clear();
+        }
 
         if self.disk_histories.len() < self.latest.disks.len() {
             self.disk_histories
@@ -124,8 +131,13 @@ impl TuiState {
         }
 
         for (history, disk) in self.disk_histories.iter_mut().zip(self.latest.disks.iter()) {
-            push_history(&mut history.read, disk.read_bytes_per_sec);
-            push_history(&mut history.write, disk.write_bytes_per_sec);
+            if disk.io_available {
+                push_history(&mut history.read, disk.read_bytes_per_sec);
+                push_history(&mut history.write, disk.write_bytes_per_sec);
+            } else {
+                history.read.clear();
+                history.write.clear();
+            }
         }
     }
 
@@ -159,6 +171,10 @@ impl TuiState {
 
     pub(super) fn selected_disk_history(&self) -> Option<&DiskHistory> {
         self.disk_histories.get(self.selected_disk)
+    }
+
+    pub(super) fn disk_io_available(&self) -> bool {
+        self.latest.disks.iter().any(|disk| disk.io_available)
     }
 
     fn refresh_inventory(&mut self) {
@@ -218,10 +234,9 @@ impl TuiState {
     fn prev_disk(&mut self) {
         if self.tab == 1 {
             if !self.report.physical_disks.is_empty() {
-                self.selected_physical_disk = (self.selected_physical_disk
-                    + self.report.physical_disks.len()
-                    - 1)
-                    % self.report.physical_disks.len();
+                self.selected_physical_disk =
+                    (self.selected_physical_disk + self.report.physical_disks.len() - 1)
+                        % self.report.physical_disks.len();
             }
         } else if self.tab == 2 && !self.latest.disks.is_empty() {
             self.selected_disk =

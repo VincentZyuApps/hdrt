@@ -17,10 +17,11 @@ pub enum RenderFormat {
     Markdown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TableStyle {
     #[value(alias = "round")]
+    #[default]
     Rounded,
     Modern,
     Sharp,
@@ -28,12 +29,6 @@ pub enum TableStyle {
     #[value(alias = "plain")]
     Ascii,
     Blank,
-}
-
-impl Default for TableStyle {
-    fn default() -> Self {
-        Self::Rounded
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
@@ -52,21 +47,16 @@ pub enum SpinnerStyle {
     Dots,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TuiBorder {
     #[value(alias = "round")]
+    #[default]
     Rounded,
     #[value(alias = "square")]
     Plain,
     Double,
     Thick,
-}
-
-impl Default for TuiBorder {
-    fn default() -> Self {
-        Self::Rounded
-    }
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, Serialize, Deserialize)]

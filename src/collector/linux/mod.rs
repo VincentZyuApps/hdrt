@@ -5,6 +5,8 @@ mod memory;
 mod motherboard;
 mod native;
 mod shell;
+#[cfg(test)]
+mod tests;
 
 use std::time::Instant;
 

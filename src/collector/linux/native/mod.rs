@@ -1,11 +1,11 @@
+use crate::collector::sysfs;
 use crate::hardware::{HardwareReport, HdrtWarning};
 
-mod disk;
 mod memory;
 
 pub(super) fn collect_report() -> HardwareReport {
     let mut report = HardwareReport {
-        physical_disks: disk::collect(),
+        physical_disks: sysfs::collect_physical_disks(),
         logical_disks: Vec::new(),
         memory: memory::collect(),
         cpu: super::cpu::collect(),

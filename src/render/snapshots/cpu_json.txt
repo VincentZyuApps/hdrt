@@ -1,0 +1,12 @@
+{
+  "data": {
+    "frequency": "2500 MHz",
+    "logical_threads": 12,
+    "model": "Test CPU",
+    "physical_cores": 6,
+    "source": "fixture",
+    "vendor": "Test Vendor",
+    "warnings": []
+  },
+  "warnings": []
+}

@@ -18,10 +18,7 @@ pub(super) fn collect(report: &HardwareReport, section: Section) -> Vec<HdrtWarn
                 .flat_map(|item| item.warnings.clone()),
         );
     }
-    if matches!(
-        section,
-        Section::Disk | Section::LogicalDisk | Section::All
-    ) {
+    if matches!(section, Section::Disk | Section::LogicalDisk | Section::All) {
         warnings.extend(
             report
                 .logical_disks

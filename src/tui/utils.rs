@@ -83,10 +83,6 @@ pub(super) fn average_disk_used_percent(disks: &[DiskTelemetry]) -> f64 {
     }
 }
 
-pub(super) fn warning_percent(count: usize) -> f64 {
-    ((count.min(10) as f64) / 10.0) * 100.0
-}
-
 pub(super) fn disk_label(disk: &DiskTelemetry) -> String {
     if disk.mount_point.is_empty() {
         disk.name.clone()

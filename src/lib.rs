@@ -1,4 +1,5 @@
 pub mod app;
+pub(crate) mod build_info;
 pub mod collector;
 pub mod emoji;
 pub mod hardware;
